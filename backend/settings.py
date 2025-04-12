@@ -76,12 +76,22 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 # Default database configuration (SQLite for development)
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-    }
+    "default": dj_database_url.config(
+        default="postgresql://postgres:OjBseWyRIPJNQeANLJsXlnBOSjDFaboI@interchange.proxy.rlwy.net:12772/railway"
+    )
 }
+
+
+if os.environ.get('DATABASE_URL') and 'railway.internal' in os.environ.get('DATABASE_URL'):
+    # Si estamos ejecutando localmente pero con variables de Railway
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        }
+    }
 
 # Use DATABASE_URL environment variable if available (Railway provides this)
 DATABASE_URL = os.environ.get('DATABASE_URL')
@@ -173,3 +183,5 @@ CORS_ALLOW_ALL_ORIGINS = True  # In production, specify exact origins
 
 # WhiteNoise configuration for static files
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+CSRF_TRUSTED_ORIGINS = ['https://*.railway.app/']
