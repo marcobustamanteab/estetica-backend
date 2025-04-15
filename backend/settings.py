@@ -2,21 +2,21 @@ import os
 from pathlib import Path
 import dj_database_url
 from datetime import timedelta
+from dotenv import load_dotenv
+
+# Cargar variables de entorno desde .env
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent
-
-print("DATABASE_URL:", os.environ.get('DATABASE_URL'))
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-key-for-development')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DEBUG', 'True') == 'True'
+DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
-ALLOWED_HOSTS = ['*']  # In production, you should restrict this
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
 # Application definition
 INSTALLED_APPS = [
@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'corsheaders',
     'django_filters',
+    'drf_yasg',
     
     # Local apps
     'authentication',
@@ -72,39 +73,30 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'backend.wsgi.application'
 
-# Database
-# https://docs.djangoproject.com/en/4.2/ref/settings/#databases
-
-# Default database configuration (SQLite for development)
-
-DATABASES = {
-    "default": dj_database_url.config(
-        default="postgresql://postgres:OjBseWyRIPJNQeANLJsXlnBOSjDFaboI@interchange.proxy.rlwy.net:12772/railway"
-    )
-}
-
-
-if os.environ.get('DATABASE_URL') and 'railway.internal' in os.environ.get('DATABASE_URL'):
-    # Si estamos ejecutando localmente pero con variables de Railway
+# Database Configuration
+# Use DATABASE_URL if provided (Railway or other PaaS)
+if os.environ.get('DATABASE_URL'):
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=os.environ.get('DATABASE_URL'),
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
+    }
+else:
+    # Use local database configuration
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+            'ENGINE': os.environ.get('DB_ENGINE', 'django.db.backends.postgresql'),
+            'NAME': os.environ.get('DB_NAME', 'pgdb'),
+            'USER': os.environ.get('DB_USER', 'marco'),
+            'PASSWORD': os.environ.get('DB_PASSWORD', 'admin'),
+            'HOST': os.environ.get('DB_HOST', 'localhost'),
+            'PORT': os.environ.get('DB_PORT', '5432'),
         }
     }
 
-# Use DATABASE_URL environment variable if available (Railway provides this)
-DATABASE_URL = os.environ.get('DATABASE_URL')
-if DATABASE_URL:
-    DATABASES['default'] = dj_database_url.config(
-        default=DATABASE_URL,
-        conn_max_age=600,
-        conn_health_checks=True,
-    )
-    
 # Password validation
-# https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
-
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -124,19 +116,12 @@ AUTH_PASSWORD_VALIDATORS = [
 AUTH_USER_MODEL = 'authentication.User'
 
 # Internationalization
-# https://docs.djangoproject.com/en/4.2/topics/i18n/
-
 LANGUAGE_CODE = 'es-es'
-
 TIME_ZONE = 'America/Mexico_City'
-
 USE_I18N = True
-
 USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/4.2/howto/static-files/
-
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
@@ -145,8 +130,6 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Default primary key field type
-# https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # REST Framework settings
@@ -179,9 +162,14 @@ SIMPLE_JWT = {
 }
 
 # CORS settings
-CORS_ALLOW_ALL_ORIGINS = True  # In production, specify exact origins
+CORS_ALLOW_ALL_ORIGINS = os.environ.get('CORS_ALLOW_ALL_ORIGINS', 'True').lower() == 'true'
+
+# Si CORS_ALLOW_ALL_ORIGINS es False, especificar orígenes
+if not CORS_ALLOW_ALL_ORIGINS:
+    CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS', 'http://localhost:3000').split(',')
 
 # WhiteNoise configuration for static files
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-CSRF_TRUSTED_ORIGINS = ['https://*.railway.app/']
+# CSRF Trusted Origins
+CSRF_TRUSTED_ORIGINS = os.environ.get('CSRF_TRUSTED_ORIGINS', 'https://*.railway.app').split(',')
