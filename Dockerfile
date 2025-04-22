@@ -20,11 +20,11 @@ COPY requirements.txt .
 RUN pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Ejecutar collectstatic
-RUN python manage.py collectstatic --noinput || echo "Skipping collectstatic"
-
 # Copiar el proyecto
 COPY . .
+
+# Ejecutar collectstatic
+RUN python manage.py collectstatic --noinput || echo "Skipping collectstatic"
 
 # Exponer el puerto en el que se ejecutará Django
 EXPOSE 8000
