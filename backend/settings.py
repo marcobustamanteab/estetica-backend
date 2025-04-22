@@ -91,7 +91,7 @@ else:
             'NAME': os.environ.get('DB_NAME', 'pgdb'),
             'USER': os.environ.get('DB_USER', 'marco'),
             'PASSWORD': os.environ.get('DB_PASSWORD', 'admin'),
-            'HOST': os.environ.get('DB_HOST', 'localhost'),
+            'HOST': os.environ.get('DB_HOST', 'db'), # 'db' for Docker container
             'PORT': os.environ.get('DB_PORT', '5432'),
         }
     }
