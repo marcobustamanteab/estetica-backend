@@ -2,10 +2,16 @@ import os
 from pathlib import Path
 import dj_database_url
 from datetime import timedelta
-from dotenv import load_dotenv
+
+DATABASE_URL_SYSTEM = os.environ.get('DATABASE_URL')
 
 # Cargar variables de entorno desde .env
+from dotenv import load_dotenv
 load_dotenv()
+
+if DATABASE_URL_SYSTEM:
+    # Si DATABASE_URL está configurado, usarlo para la base de datos
+    os.environ['DATABASE_URL'] = DATABASE_URL_SYSTEM
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
