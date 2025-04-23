@@ -30,5 +30,5 @@ RUN python manage.py collectstatic --noinput || echo "Skipping collectstatic"
 EXPOSE 8000
 
 # Comando para ejecutar la aplicación
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
-# CMD ["gunicorn", "backend.wsgi:application", "--bind", "0.0.0.0:8000"]
+# CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["gunicorn", "backend.wsgi:application", "--bind", "0.0.0.0:8000"]
