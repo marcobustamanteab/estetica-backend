@@ -19,7 +19,24 @@ class AppointmentSerializer(serializers.ModelSerializer):
         Realizar validaciones personalizadas:
         - Verificar que la hora de inicio sea anterior a la hora de fin
         - Verificar que no haya citas solapadas para el mismo empleado
+        - Verificar que no se estén editando o cambiando el estado de citas completadas
         """
+        # Si estamos actualizando una cita existente
+        if self.instance:
+            # Verificar si la cita ya está completada
+            if self.instance.status == 'completed':
+                # Si intentan cambiar el estado, rechazar
+                if 'status' in data:
+                    raise serializers.ValidationError({
+                        "status": ["Las citas completadas no pueden cambiar de estado."]
+                    })
+                
+                # Si intentan cambiar cualquier campo, rechazar
+                raise serializers.ValidationError({
+                    "non_field_errors": ["Las citas completadas no pueden ser editadas."]
+                })
+        
+        # Validaciones existentes
         if 'start_time' in data and 'end_time' in data:
             if data['start_time'] >= data['end_time']:
                 raise serializers.ValidationError({"end_time": "La hora de fin debe ser posterior a la hora de inicio"})

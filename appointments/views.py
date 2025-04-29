@@ -1,9 +1,10 @@
-# appointments/views.py
+# appointments/views.py (modificación)
 from rest_framework import viewsets, permissions, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from datetime import datetime, timedelta
+from django.db import models
 from .models import Appointment
 from .serializers import AppointmentSerializer, CalendarAppointmentSerializer
 from authentication.models import User
@@ -55,6 +56,41 @@ class AppointmentViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(date__range=[start_of_month, end_of_month])
         
         return queryset
+    
+    def update(self, request, *args, **kwargs):
+        """
+        Sobreescribir el método update para manejar citas completadas
+        """
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        
+        # Verificar si la cita está completada
+        if instance.status == 'completed':
+            return Response(
+                {"error": "Las citas completadas no pueden ser editadas."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        
+        return Response(serializer.data)
+    
+    def partial_update(self, request, *args, **kwargs):
+        """
+        Sobreescribir el método partial_update para manejar citas completadas
+        """
+        instance = self.get_object()
+        
+        # Si la cita ya está completada y se intenta cambiar el estado
+        if instance.status == 'completed' and 'status' in request.data:
+            return Response(
+                {"error": "Las citas completadas no pueden cambiar de estado."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        return super().partial_update(request, *args, **kwargs)
     
     @action(detail=False, methods=['get'])
     def calendar(self, request):

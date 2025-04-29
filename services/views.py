@@ -47,9 +47,32 @@ class ServiceViewSet(viewsets.ModelViewSet):
         
         if is_active is not None:
             is_active = is_active.lower() == 'true'
-            queryset = queryset.filter(is_active=is_active)
+            
+            if is_active:
+                queryset = queryset.filter(
+                    is_active=True,
+                    category__is_active=True 
+                )
+            else:
+                queryset = queryset.filter(is_active=False)
             
         if category is not None:
             queryset = queryset.filter(category_id=category)
             
+        queryset = queryset.order_by('-category__is_active', 'category__name', 'name')
+            
         return queryset
+
+    @action(detail=False, methods=['get'])
+    def available_for_appointments(self, request):
+        """
+        Endpoint especial para obtener solo servicios disponibles para citas
+        Requiere que tanto el servicio como su categoría estén activos
+        """
+        queryset = Service.objects.filter(
+            is_active=True,
+            category__is_active=True
+        ).order_by('category__name', 'name')
+        
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
