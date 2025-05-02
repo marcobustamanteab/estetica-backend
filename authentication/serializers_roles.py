@@ -1,3 +1,4 @@
+# authentication/serializers_roles.py
 from rest_framework import serializers
 from django.contrib.auth.models import Group, Permission
 from django.contrib.contenttypes.models import ContentType
@@ -16,10 +17,12 @@ class PermissionSerializer(serializers.ModelSerializer):
 
 class GroupSerializer(serializers.ModelSerializer):
     permissions = PermissionSerializer(many=True, read_only=True)
-    
-    # Eliminamos user_set por ahora, ya que causa problemas con prefetch_related
-    # Si necesitas esta información, puedes volver a añadirla más tarde con un enfoque diferente
+    user_count = serializers.SerializerMethodField()
     
     class Meta:
         model = Group
-        fields = ['id', 'name', 'permissions']
+        fields = ['id', 'name', 'permissions', 'user_count']
+        
+    def get_user_count(self, obj):
+        # This safely gets the count of users for this group
+        return obj.user_set.count() if hasattr(obj, 'user_set') else 0
