@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer # type: ignore
+from django.contrib.auth.models import Group
 
 User = get_user_model()
 
@@ -34,7 +35,6 @@ class RegisterSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = User
-        # Eliminamos phone_number
         fields = ('username', 'email', 'password', 'password2', 'first_name', 'last_name')
     
     def validate(self, attrs):
@@ -43,7 +43,6 @@ class RegisterSerializer(serializers.ModelSerializer):
         return attrs
     
     def create(self, validated_data):
-        # Eliminar password2 ya que no es parte del modelo User
         validated_data.pop('password2')
         
         # Crear usuario
@@ -55,25 +54,37 @@ class AdminUserSerializer(serializers.ModelSerializer):
     Serializer para administradores que permite gestionar todos los campos de usuarios
     """
     password = serializers.CharField(write_only=True, required=False)
+    groups = serializers.PrimaryKeyRelatedField(
+        many=True, 
+        queryset=Group.objects.all(),
+        required=False
+    )
     
     class Meta:
         model = User
         fields = ('id', 'username', 'email', 'first_name', 'last_name', 
-                  'is_active', 'is_staff', 'profile_image', 'password')
+                  'is_active', 'is_staff', 'profile_image', 'password', 'groups')
         read_only_fields = ('id',)
     
     def create(self, validated_data):
         password = validated_data.pop('password', None)
+        groups = validated_data.pop('groups', [])
+        
         user = User.objects.create(**validated_data)
         
         if password:
             user.set_password(password)
-            user.save()
         
+        # Asignar grupos
+        if groups:
+            user.groups.set(groups)
+            
+        user.save()
         return user
     
     def update(self, instance, validated_data):
         password = validated_data.pop('password', None)
+        groups = validated_data.pop('groups', None)
         
         # Actualizar campos normales
         for attr, value in validated_data.items():
@@ -83,5 +94,9 @@ class AdminUserSerializer(serializers.ModelSerializer):
         if password:
             instance.set_password(password)
         
+        # Actualizar grupos si se proporcionaron
+        if groups is not None:
+            instance.groups.set(groups)
+            
         instance.save()
         return instance
