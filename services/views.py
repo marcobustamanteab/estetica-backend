@@ -1,8 +1,8 @@
 from rest_framework import viewsets, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from .models import ServiceCategory, Service
-from .serializers import ServiceCategorySerializer, ServiceSerializer
+from .models import ServiceCategory, Service, RoleCategoryPermission
+from .serializers import ServiceCategorySerializer, ServiceSerializer, RoleCategoryPermissionSerializer
 
 class ServiceCategoryViewSet(viewsets.ModelViewSet):
     """
@@ -11,14 +11,40 @@ class ServiceCategoryViewSet(viewsets.ModelViewSet):
     queryset = ServiceCategory.objects.all()
     serializer_class = ServiceCategorySerializer
     permission_classes = [permissions.IsAuthenticated]
-    
+
     def get_queryset(self):
         queryset = ServiceCategory.objects.all()
         is_active = self.request.query_params.get('is_active', None)
+        employee_id = self.request.query_params.get('employee_id', None)
         
         if is_active is not None:
             is_active = is_active.lower() == 'true'
             queryset = queryset.filter(is_active=is_active)
+        
+        # Filtrar categorías por rol del empleado
+        if employee_id:
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            
+            try:
+                employee = User.objects.get(id=employee_id)
+                # Si el empleado es staff, puede ver todas las categorías
+                if not employee.is_staff:
+                    # Obtener los roles del empleado
+                    employee_roles = employee.groups.all()
+                    # Filtrar categorías permitidas para esos roles
+                    if employee_roles.exists():
+                        from django.db.models import Q
+                        role_filter = Q()
+                        for role in employee_roles:
+                            role_filter |= Q(allowed_roles__role=role)
+                        queryset = queryset.filter(role_filter).distinct()
+                    else:
+                        # Si no tiene roles, no mostrar ninguna categoría
+                        queryset = queryset.none()
+            except User.DoesNotExist:
+                # Si el empleado no existe, no mostrar ninguna categoría
+                queryset = queryset.none()
             
         return queryset
     
@@ -76,3 +102,23 @@ class ServiceViewSet(viewsets.ModelViewSet):
         
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+
+class RoleCategoryPermissionViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint para asignar categorías a roles
+    """
+    queryset = RoleCategoryPermission.objects.all()
+    serializer_class = RoleCategoryPermissionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = RoleCategoryPermission.objects.all()
+        role_id = self.request.query_params.get('role', None)
+        category_id = self.request.query_params.get('category', None)
+        
+        if role_id:
+            queryset = queryset.filter(role_id=role_id)
+        if category_id:
+            queryset = queryset.filter(category_id=category_id)
+            
+        return queryset

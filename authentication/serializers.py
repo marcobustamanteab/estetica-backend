@@ -21,10 +21,18 @@ class UserSerializer(serializers.ModelSerializer):
     """
     Serializer para mostrar información del usuario
     """
+    groups = serializers.SerializerMethodField()
+    
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'profile_image')
+        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'profile_image', 'groups')
         read_only_fields = ('id',)
+    
+    def get_groups(self, obj):
+        return [
+            {'id': group.id, 'name': group.name}
+            for group in obj.groups.all()
+        ]
 
 class RegisterSerializer(serializers.ModelSerializer):
     """
