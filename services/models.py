@@ -43,7 +43,6 @@ class RoleCategoryPermission(models.Model):
     class Meta:
         verbose_name = "Permiso de Categoría por Rol"
         verbose_name_plural = "Permisos de Categorías por Roles"
-        # Asegurar que no haya duplicados
         unique_together = ('role', 'category')
     
     def __str__(self):

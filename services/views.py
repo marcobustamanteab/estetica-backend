@@ -3,6 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from .models import ServiceCategory, Service, RoleCategoryPermission
 from .serializers import ServiceCategorySerializer, ServiceSerializer, RoleCategoryPermissionSerializer
+from django.contrib.auth.models import Group
 
 class ServiceCategoryViewSet(viewsets.ModelViewSet):
     """
@@ -48,14 +49,32 @@ class ServiceCategoryViewSet(viewsets.ModelViewSet):
             
         return queryset
     
-    @action(detail=True, methods=['get'])
-    def services(self, request, pk=None):
+    @action(detail=True, methods=['post'])
+    def assign_roles(self, request, pk=None):
         """
-        Obtener todos los servicios de una categoría
+        Endpoint para asignar roles a una categoría específica
         """
         category = self.get_object()
-        services = Service.objects.filter(category=category)
-        serializer = ServiceSerializer(services, many=True)
+        role_ids = request.data.get('roles', [])
+        
+        if not role_ids:
+            return Response({"error": "No se proporcionaron roles"}, status=400)
+        
+        # Eliminar roles existentes
+        category.allowed_roles.all().delete()
+        
+        # Asignar nuevos roles
+        for role_id in role_ids:
+            try:
+                role = Group.objects.get(id=role_id)
+                RoleCategoryPermission.objects.create(
+                    category=category,
+                    role=role
+                )
+            except Group.DoesNotExist:
+                pass  # Ignorar roles que no existen
+        
+        serializer = self.get_serializer(category)
         return Response(serializer.data)
 
 class ServiceViewSet(viewsets.ModelViewSet):

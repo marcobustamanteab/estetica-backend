@@ -2,11 +2,24 @@ from rest_framework import serializers
 from .models import ServiceCategory, Service, RoleCategoryPermission
 
 class ServiceCategorySerializer(serializers.ModelSerializer):
-    allowed_roles = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    allowed_roles = serializers.SerializerMethodField()
     
     class Meta:
         model = ServiceCategory
-        fields = '__all__'
+        fields = ['id', 'name', 'description', 'is_active', 'allowed_roles']
+    
+    def get_allowed_roles(self, obj):
+        # Obtener todos los permisos de rol para esta categoría
+        role_permissions = RoleCategoryPermission.objects.filter(category=obj)
+        
+        # Registrar para depuración
+        print(f"Roles para categoría {obj.name}: {[rp.role.name for rp in role_permissions]}")
+        
+        # Devolver la lista de roles
+        return [
+            {'id': rp.role.id, 'name': rp.role.name}
+            for rp in role_permissions
+        ]
 
 class ServiceSerializer(serializers.ModelSerializer):
     category_name = serializers.ReadOnlyField(source='category.name')
