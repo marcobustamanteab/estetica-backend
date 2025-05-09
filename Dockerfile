@@ -23,12 +23,16 @@ RUN pip install --upgrade pip && \
 # Copiar el proyecto
 COPY . .
 
-# Ejecutar collectstatic
+# Ejecutar migraciones antes de iniciar la aplicación
 RUN python manage.py collectstatic --noinput || echo "Skipping collectstatic"
+
+# AÑADIR ESTE BLOQUE DE CÓDIGO PARA EJECUTAR MIGRACIONES
+# Ejecutar migraciones durante la construcción (este enfoque funciona solo si la BD está accesible durante el build)
+# Si no, usa el script de inicio de la Opción 1
+RUN python manage.py migrate || echo "Migrations will be run at startup"
 
 # Exponer el puerto en el que se ejecutará Django
 EXPOSE 8000
 
 # Comando para ejecutar la aplicación
-# CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
 CMD ["gunicorn", "backend.wsgi:application", "--bind", "0.0.0.0:8000"]
