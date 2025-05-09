@@ -24,28 +24,44 @@ class ServiceCategoryViewSet(viewsets.ModelViewSet):
         
         # Filtrar categorías por rol del empleado
         if employee_id:
-            from django.contrib.auth import get_user_model
-            User = get_user_model()
-            
             try:
-                employee = User.objects.get(id=employee_id)
-                # Si el empleado es staff, puede ver todas las categorías
-                if not employee.is_staff:
-                    # Obtener los roles del empleado
-                    employee_roles = employee.groups.all()
-                    # Filtrar categorías permitidas para esos roles
-                    if employee_roles.exists():
-                        from django.db.models import Q
-                        role_filter = Q()
-                        for role in employee_roles:
-                            role_filter |= Q(allowed_roles__role=role)
-                        queryset = queryset.filter(role_filter).distinct()
-                    else:
-                        # Si no tiene roles, no mostrar ninguna categoría
-                        queryset = queryset.none()
-            except User.DoesNotExist:
-                # Si el empleado no existe, no mostrar ninguna categoría
-                queryset = queryset.none()
+                from django.contrib.auth import get_user_model
+                User = get_user_model()
+                
+                try:
+                    employee = User.objects.get(id=employee_id)
+                    # Si el empleado es staff, puede ver todas las categorías
+                    if not employee.is_staff:
+                        # Obtener los roles del empleado
+                        employee_roles = employee.groups.all()
+                        
+                        if employee_roles.exists():
+                            # Verificar si hay permisos de categoría asignados
+                            from django.db.models import Q
+                            
+                            # Primero verificar si hay alguna asignación en RoleCategoryPermission
+                            if RoleCategoryPermission.objects.exists():
+                                role_filter = Q()
+                                for role in employee_roles:
+                                    role_filter |= Q(allowed_roles__role=role)
+                                queryset = queryset.filter(role_filter).distinct()
+                            else:
+                                # Si no hay asignaciones, mostrar todas las categorías (fallback)
+                                # O decidir no mostrar ninguna, según tu lógica de negocio
+                                pass
+                        else:
+                            # Si no tiene roles, no mostrar ninguna categoría
+                            queryset = queryset.none()
+                except User.DoesNotExist:
+                    # Si el empleado no existe, no mostrar ninguna categoría
+                    queryset = queryset.none()
+            except Exception as e:
+                # Log del error para depuración (usar logger, no print)
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Error al filtrar categorías por empleado: {str(e)}")
+                # Devolver todas las categorías como fallback
+                pass
             
         return queryset
     
