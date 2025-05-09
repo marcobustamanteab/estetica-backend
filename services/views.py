@@ -70,28 +70,80 @@ class ServiceCategoryViewSet(viewsets.ModelViewSet):
         """
         Endpoint para asignar roles a una categoría específica
         """
-        category = self.get_object()
-        role_ids = request.data.get('roles', [])
-        
-        if not role_ids:
-            return Response({"error": "No se proporcionaron roles"}, status=400)
-        
-        # Eliminar roles existentes
-        category.allowed_roles.all().delete()
-        
-        # Asignar nuevos roles
-        for role_id in role_ids:
+        import logging
+        logger = logging.getLogger(__name__)
+
+        try:
+            # Paso 1: Obtener la categoría
+            category = self.get_object()
+            logger.info(f"Asignando roles a categoría: {category.id} - {category.name}")
+            
+            # Paso 2: Obtener los IDs de rol proporcionados
+            role_ids = request.data.get('roles', [])
+            logger.info(f"Roles recibidos: {role_ids}")
+            
+            if not role_ids:
+                return Response({"error": "No se proporcionaron roles"}, status=400)
+            
+            # Paso 3: Eliminar roles existentes de manera segura
             try:
-                role = Group.objects.get(id=role_id)
-                RoleCategoryPermission.objects.create(
-                    category=category,
-                    role=role
-                )
-            except Group.DoesNotExist:
-                pass  # Ignorar roles que no existen
-        
-        serializer = self.get_serializer(category)
-        return Response(serializer.data)
+                # En lugar de usar la relación, usar el modelo directamente
+                existing_permissions = RoleCategoryPermission.objects.filter(category=category)
+                logger.info(f"Eliminando {existing_permissions.count()} permisos existentes")
+                existing_permissions.delete()
+            except Exception as e:
+                logger.error(f"Error al eliminar roles existentes: {str(e)}")
+                return Response({"error": f"Error al eliminar roles existentes: {str(e)}"}, status=500)
+            
+            # Paso 4: Asignar nuevos roles
+            successful_assignments = []
+            failed_assignments = []
+            
+            for role_id in role_ids:
+                try:
+                    role = Group.objects.get(id=role_id)
+                    logger.info(f"Asignando rol {role.id} - {role.name}")
+                    
+                    permission = RoleCategoryPermission.objects.create(
+                        category=category,
+                        role=role
+                    )
+                    successful_assignments.append(role.name)
+                except Group.DoesNotExist:
+                    logger.warning(f"El rol con ID {role_id} no existe")
+                    failed_assignments.append(f"Rol ID {role_id} no existe")
+                except Exception as e:
+                    logger.error(f"Error al asignar rol {role_id}: {str(e)}")
+                    failed_assignments.append(f"Error en rol {role_id}: {str(e)}")
+            
+            # Paso 5: Generar respuesta
+            try:
+                serializer = self.get_serializer(category)
+                response_data = serializer.data
+                
+                # Añadir información sobre los roles asignados
+                response_data['assigned_roles'] = successful_assignments
+                if failed_assignments:
+                    response_data['failed_assignments'] = failed_assignments
+                
+                return Response(response_data)
+            except Exception as e:
+                logger.error(f"Error al serializar respuesta: {str(e)}")
+                
+                # Devolver una respuesta básica en caso de error de serialización
+                basic_response = {
+                    "id": category.id,
+                    "name": category.name,
+                    "assigned_roles": successful_assignments
+                }
+                if failed_assignments:
+                    basic_response['failed_assignments'] = failed_assignments
+                    
+                return Response(basic_response)
+                
+        except Exception as e:
+            logger.error(f"Error general en assign_roles: {str(e)}")
+            return Response({"error": f"Error interno del servidor: {str(e)}"}, status=500)
 
 class ServiceViewSet(viewsets.ModelViewSet):
     """
