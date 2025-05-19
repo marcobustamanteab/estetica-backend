@@ -8,7 +8,6 @@ class GroupListCreateView(generics.ListCreateAPIView):
     Vista para listar todos los grupos y crear nuevos
     Accesible para usuarios autenticados
     """
-    # Solo hacemos prefetch_related con 'permissions', eliminamos 'user_set'
     queryset = Group.objects.prefetch_related('permissions').all()
     serializer_class = GroupSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -18,7 +17,6 @@ class GroupRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     Vista para ver, actualizar o eliminar grupos específicos
     Accesible para usuarios autenticados
     """
-    # Solo hacemos prefetch_related con 'permissions', eliminamos 'user_set'
     queryset = Group.objects.prefetch_related('permissions').all()
     serializer_class = GroupSerializer
     permission_classes = [permissions.IsAuthenticated]

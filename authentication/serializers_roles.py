@@ -2,6 +2,7 @@
 from rest_framework import serializers
 from django.contrib.auth.models import Group, Permission
 from django.contrib.contenttypes.models import ContentType
+from django.contrib.auth import get_user_model
 
 class ContentTypeSerializer(serializers.ModelSerializer):
     class Meta:
@@ -26,3 +27,7 @@ class GroupSerializer(serializers.ModelSerializer):
     def get_user_count(self, obj):
         # This safely gets the count of users for this group
         return obj.user_set.count() if hasattr(obj, 'user_set') else 0
+    
+def get_user_count(self, obj):
+    User = get_user_model()
+    return User.objects.filter(groups=obj).count()
