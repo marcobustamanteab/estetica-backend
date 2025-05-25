@@ -5,8 +5,8 @@ from .views import ServiceCategoryViewSet, ServiceViewSet, RoleCategoryPermissio
 
 router = DefaultRouter()
 router.register(r'categories', ServiceCategoryViewSet)
-router.register(r'', ServiceViewSet)
 router.register(r'role-categories', RoleCategoryPermissionViewSet)
+router.register(r'', ServiceViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),

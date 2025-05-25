@@ -4,6 +4,32 @@ from rest_framework.response import Response
 from .models import ServiceCategory, Service, RoleCategoryPermission
 from .serializers import ServiceCategorySerializer, ServiceSerializer, RoleCategoryPermissionSerializer
 from django.contrib.auth.models import Group
+from authentication.serializers import UserSerializer
+from authentication.models import User
+from django.contrib.auth import get_user_model
+
+try:
+    from authentication.serializers import UserSerializer
+except ImportError:
+    # Si no existe, crear uno básico
+    from rest_framework import serializers
+    
+    User = get_user_model()
+    
+    class UserSerializer(serializers.ModelSerializer):
+        groups = serializers.SerializerMethodField()
+        
+        class Meta:
+            model = User
+            fields = ('id', 'username', 'email', 'first_name', 'last_name', 'is_active', 'groups')
+        
+        def get_groups(self, obj):
+            return [
+                {'id': group.id, 'name': group.name}
+                for group in obj.groups.all()
+            ]
+
+User = get_user_model()
 
 class ServiceCategoryViewSet(viewsets.ModelViewSet):
     """
@@ -189,6 +215,38 @@ class ServiceViewSet(viewsets.ModelViewSet):
         
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+
+    @action(detail=True, methods=['get'])
+    def employees(self, request, pk=None):
+        """
+        Obtener empleados que pueden realizar este servicio específico
+        """
+        try:
+            service = self.get_object()
+            category = service.category
+            
+            # Obtener roles permitidos para esta categoría
+            allowed_roles = RoleCategoryPermission.objects.filter(
+                category=category
+            ).values_list('role_id', flat=True)
+            
+            if not allowed_roles:
+                # Si no hay roles específicos asignados, devolver todos los usuarios activos
+                users_with_roles = User.objects.filter(is_active=True)
+            else:
+                # Obtener empleados que tengan al menos uno de esos roles
+                users_with_roles = User.objects.filter(
+                    groups__in=allowed_roles, 
+                    is_active=True
+                ).distinct()
+            
+            serializer = UserSerializer(users_with_roles, many=True)
+            return Response(serializer.data)
+            
+        except Service.DoesNotExist:
+            return Response({'error': 'Servicio no encontrado'}, status=404)
+        except Exception as e:
+            return Response({'error': str(e)}, status=500)
 
 class RoleCategoryPermissionViewSet(viewsets.ModelViewSet):
     """
