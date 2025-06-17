@@ -44,7 +44,7 @@ INSTALLED_APPS = [
     'authentication',
     'clients',
     'services',
-    'appointments',
+    'appointments.apps.AppointmentsConfig',
 ]
 
 MIDDLEWARE = [
@@ -179,3 +179,20 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # CSRF Trusted Origins
 CSRF_TRUSTED_ORIGINS = os.environ.get('CSRF_TRUSTED_ORIGINS', 'https://*.railway.app,https://estetica-backend-production.up.railway.app').split(',')
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'appointments.signals': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+    },
+}

@@ -12,6 +12,13 @@ class User(AbstractUser):
     phone_number = models.CharField(max_length=15, blank=True, null=True)
     profile_image = models.ImageField(upload_to='profile_images/', blank=True, null=True)
     
+    google_calendar_id = models.CharField(
+        max_length=200, 
+        blank=True, 
+        null=True,
+        help_text="ID del calendario de Google del empleado"
+    )
+    
     groups = models.ManyToManyField(
         'auth.Group',
         verbose_name=_('groups'),

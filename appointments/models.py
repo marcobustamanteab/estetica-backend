@@ -22,6 +22,13 @@ class Appointment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de creación")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Fecha de actualización")
     
+    google_calendar_event_id = models.CharField(
+        max_length=200, 
+        blank=True, 
+        null=True,
+        help_text="ID del evento en Google Calendar"
+    )
+    
     class Meta:
         verbose_name = "Cita"
         verbose_name_plural = "Citas"
