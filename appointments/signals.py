@@ -1,3 +1,5 @@
+# appointments/signals.py
+
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from .models import Appointment
@@ -28,10 +30,24 @@ def create_google_calendar_event(appointment):
     try:
         logger.info(f"📅 Intentando crear evento en Google Calendar para cita ID: {appointment.id}")
         
-        # Verificar que el empleado tenga calendario configurado
+        # NUEVO: Verificar y crear calendario automáticamente si no existe
         if not appointment.employee.google_calendar_id:
-            logger.warning(f"⚠️ Empleado {appointment.employee.username} no tiene google_calendar_id")
-            return
+            logger.info(f"⚠️ Empleado {appointment.employee.username} no tiene calendar_id, creando automáticamente...")
+            
+            # Crear calendario automáticamente
+            calendar_service = GoogleCalendarService()
+            calendar_id = calendar_service.create_employee_calendar(
+                appointment.employee.get_full_name(),
+                appointment.employee.email
+            )
+            
+            if calendar_id:
+                appointment.employee.google_calendar_id = calendar_id
+                appointment.employee.save(update_fields=['google_calendar_id'])
+                logger.info(f"✅ Calendario creado automáticamente para {appointment.employee.get_full_name()}")
+            else:
+                logger.error(f"❌ No se pudo crear calendario automáticamente")
+                return
         
         # Crear servicio de Google Calendar
         calendar_service = GoogleCalendarService()
