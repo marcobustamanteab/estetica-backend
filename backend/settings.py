@@ -81,23 +81,22 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 
 # Database Configuration
 # Use DATABASE_URL if provided (Railway or other PaaS)
-if os.environ.get('DATABASE_URL'):
+DATABASE_URL = os.environ.get('DATABASE_URL')
+
+if DATABASE_URL:
+    # Railway (producción) - usar dj-database-url
     DATABASES = {
-        'default': dj_database_url.config(
-            default=os.environ.get('DATABASE_URL'),
-            conn_max_age=600,
-            conn_health_checks=True,
-        )
+        'default': dj_database_url.parse(DATABASE_URL)
     }
 else:
-    # Use local database configuration
+    # Desarrollo local
     DATABASES = {
         'default': {
-            'ENGINE': os.environ.get('DB_ENGINE', 'django.db.backends.postgresql'),
+            'ENGINE': 'django.db.backends.postgresql',
             'NAME': os.environ.get('DB_NAME', 'pgdb'),
             'USER': os.environ.get('DB_USER', 'marco'),
             'PASSWORD': os.environ.get('DB_PASSWORD', 'admin'),
-            'HOST': os.environ.get('DB_HOST', 'db'), # 'db' for Docker container
+            'HOST': os.environ.get('DB_HOST', 'db'),
             'PORT': os.environ.get('DB_PORT', '5432'),
         }
     }
