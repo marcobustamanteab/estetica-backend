@@ -268,10 +268,16 @@ def handle_appointment_updated(appointment):
 
 def send_zapier_webhook_status_changed(appointment):
     """Enviar webhook cuando cambia el estado de una cita"""
+    import os
     
-    webhook_url = getattr(settings, 'ZAPIER_STATUS_CHANGE_WEBHOOK', None)
+    # Usar os.environ en lugar de settings
+    webhook_url = os.environ.get('ZAPIER_NEW_APPOINTMENT_WEBHOOK')
+    
+    print(f"🔍 DEBUGGING:")
+    print(f"   webhook_url encontrada: {webhook_url is not None}")
     
     if not webhook_url:
+        print("❌ ZAPIER_NEW_APPOINTMENT_WEBHOOK no configurado")
         return
     
     # Solo para cambios importantes
