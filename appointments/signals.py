@@ -8,6 +8,10 @@ import logging
 import requests
 from django.conf import settings
 import json
+import os
+from datetime import datetime
+import locale
+    
 
 # Configurar logging
 logger = logging.getLogger(__name__)
@@ -214,14 +218,44 @@ def send_zapier_webhook_new_appointment(appointment):
 
 def generate_client_whatsapp_message(appointment):
     """Generar mensaje de WhatsApp para el cliente"""
+    # Variables personalizables
+    business_name = os.environ.get('BUSINESS_NAME', 'Centro de Estética')
+    arrival_time = os.environ.get('ARRIVAL_TIME', '10 minutos antes')
+    cancellation_policy = os.environ.get('CANCELLATION_POLICY', '24 horas de anticipación')
     
-    # Formatear fecha en español
-    fecha_esp = appointment.date.strftime('%A, %d de %B de %Y')
+    # FORMATEAR FECHA EN ESPAÑOL
+    dias_semana = {
+        'Monday': 'Lunes',
+        'Tuesday': 'Martes', 
+        'Wednesday': 'Miércoles',
+        'Thursday': 'Jueves',
+        'Friday': 'Viernes',
+        'Saturday': 'Sábado',
+        'Sunday': 'Domingo'
+    }
+    
+    meses = {
+        'January': 'Enero', 'February': 'Febrero', 'March': 'Marzo',
+        'April': 'Abril', 'May': 'Mayo', 'June': 'Junio',
+        'July': 'Julio', 'August': 'Agosto', 'September': 'Septiembre',
+        'October': 'Octubre', 'November': 'Noviembre', 'December': 'Diciembre'
+    }
+    
+    # Obtener día de la semana y mes en inglés
+    dia_ingles = appointment.date.strftime('%A')
+    mes_ingles = appointment.date.strftime('%B')
+    
+    # Convertir a español
+    dia_esp = dias_semana.get(dia_ingles, dia_ingles)
+    mes_esp = meses.get(mes_ingles, mes_ingles)
+    
+    # Formatear fecha completa en español
+    fecha_esp = f"{dia_esp}, {appointment.date.day} de {mes_esp} de {appointment.date.year}"
     hora_esp = appointment.start_time.strftime('%I:%M %p')
     
     message = f"""🌟 ¡Hola {appointment.client.first_name}!
 
-✅ Tu cita ha sido confirmada en nuestro centro de estética.
+✅ Tu cita ha sido confirmada en {business_name}.
 
 📋 DETALLES DE TU CITA:
 
@@ -232,9 +266,8 @@ def generate_client_whatsapp_message(appointment):
 💰 Precio: ${appointment.service.price}
 
 💡 RECORDATORIOS:
-• Llega 10 minutos antes
-• Trae identificación
-• Cancelaciones con 24hrs de anticipación
+- Llega {arrival_time}
+- Cancelaciones con {cancellation_policy}
 
 ¿Preguntas? ¡Responde a este mensaje!
 
@@ -260,7 +293,7 @@ def generate_admin_whatsapp_message(appointment):
 
 ⏰ Agendada: {appointment.created_at.strftime('%d/%m/%Y %H:%M')}
 
-💻 Ver en sistema: https://tu-sistema.com/admin/"""
+💻 Ver en sistema: https://devsign.cl/"""
     
     return message
 
