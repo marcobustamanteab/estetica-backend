@@ -106,7 +106,7 @@ class GoogleCalendarService:
 📱 Teléfono: {appointment.client.phone or 'No especificado'}
 📧 Email: {appointment.client.email}
 💅 Servicio: {appointment.service.name}
-💰 Precio: ${precio_formateado}
+💰 Precio: {precio_formateado}
 📍 Estado: {appointment.get_status_display()}
 📝 Notas: {appointment.notes or 'Sin notas'}
 
