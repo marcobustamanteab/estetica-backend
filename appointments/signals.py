@@ -165,7 +165,7 @@ def send_zapier_webhook_new_appointment(appointment):
             'name': appointment.service.name,
             'price': float(appointment.service.price),
             'duration': appointment.service.duration,
-            'category': appointment.service.category_name,
+            'category': appointment.service.category.name if appointment.service.category else 'Sin categoría',
         },
         
         # Datos del empleado
