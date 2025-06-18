@@ -30,6 +30,19 @@ def handle_appointment_created_updated(sender, instance, created, **kwargs):
         logger.info(f"🔔 Signal: Cita actualizada - ID: {instance.id}")
         update_google_calendar_event(instance)
 
+def format_chilean_price(price):
+    """Formatear precio al estilo chileno"""
+    try:
+        # Convertir a entero (quitar decimales)
+        price_int = int(float(price))
+        
+        # Formatear con separadores de miles
+        formatted = f"{price_int:,}".replace(',', '.')
+        
+        return f"${formatted}"
+    except:
+        return f"${price}"
+
 def create_google_calendar_event(appointment):
     """
     Crear evento en Google Calendar para nueva cita
@@ -220,6 +233,8 @@ def send_zapier_webhook_new_appointment(appointment):
 def generate_client_whatsapp_message(appointment):
     """Generar mensaje de WhatsApp para el cliente"""
     # Variables personalizables
+    precio_formateado = format_chilean_price(appointment.service.price)
+    
     business_name = os.environ.get('BUSINESS_NAME', 'Centro de Estética')
     arrival_time = os.environ.get('ARRIVAL_TIME', '10 minutos antes')
     cancellation_policy = os.environ.get('CANCELLATION_POLICY', '24 horas de anticipación')
@@ -264,7 +279,7 @@ def generate_client_whatsapp_message(appointment):
 🕐 Hora: {hora_esp}
 💅 Servicio: {appointment.service.name}
 👩‍💼 Especialista: {appointment.employee.get_full_name()}
-💰 Precio: ${appointment.service.price}
+💰 Precio: {precio_formateado}
 
 💡 RECORDATORIOS:
 - Llega {arrival_time}
