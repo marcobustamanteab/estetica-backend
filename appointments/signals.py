@@ -6,6 +6,7 @@ from .models import Appointment
 from services.google_calendar_service import GoogleCalendarService
 import logging
 import requests
+from django.conf import settings
 import json
 
 # Configurar logging
