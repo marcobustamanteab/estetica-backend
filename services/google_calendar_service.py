@@ -66,12 +66,22 @@ class GoogleCalendarService:
         except Exception as e:
             print(f"❌ Error compartiendo calendario: {e}")
     
+
+    
     def create_appointment_event(self, appointment):
         """Crear evento en Google Calendar cuando se agenda una cita"""
         try:
             # Obtener ID del calendario del empleado
             employee = appointment.employee
             calendar_id = employee.google_calendar_id
+            
+            def format_chilean_price(price):
+                try:
+                    price_int = int(float(price))
+                    formatted = f"{price_int:,}".replace(',', '.')
+                    return f"${formatted}"
+                except:
+                    return f"${price}"
             
             if not calendar_id:
                 print(f"❌ Empleado {employee.username} no tiene calendario configurado")
@@ -85,6 +95,8 @@ class GoogleCalendarService:
             chile_tz = pytz.timezone('America/Santiago')
             start_datetime = chile_tz.localize(start_datetime)
             end_datetime = chile_tz.localize(end_datetime)
+            precio_formateado = format_chilean_price(appointment.service.price)
+            
             
             # Crear evento con estado visible y colores correctos
             event = {
@@ -94,7 +106,7 @@ class GoogleCalendarService:
 📱 Teléfono: {appointment.client.phone or 'No especificado'}
 📧 Email: {appointment.client.email}
 💅 Servicio: {appointment.service.name}
-💰 Precio: ${appointment.service.price}
+💰 Precio: ${precio_formateado}
 📍 Estado: {appointment.get_status_display()}
 📝 Notas: {appointment.notes or 'Sin notas'}
 
