@@ -126,10 +126,16 @@ def send_zapier_webhook_new_appointment(appointment):
     """
     Enviar webhook a Zapier cuando se crea nueva cita
     """
-    webhook_url = getattr(settings, 'ZAPIER_NEW_APPOINTMENT_WEBHOOK', None)
+    import os
+    
+    # Usar os.environ en lugar de settings
+    webhook_url = os.environ.get('ZAPIER_NEW_APPOINTMENT_WEBHOOK')
+    
+    print(f"🔍 DEBUGGING:")
+    print(f"   webhook_url encontrada: {webhook_url is not None}")
     
     if not webhook_url:
-        logger.info("⚠️ ZAPIER_NEW_APPOINTMENT_WEBHOOK no configurado")
+        print("❌ ZAPIER_NEW_APPOINTMENT_WEBHOOK no configurado")
         return
     
     # Formatear teléfono para WhatsApp (agregar código país si no lo tiene)
@@ -268,16 +274,10 @@ def handle_appointment_updated(appointment):
 
 def send_zapier_webhook_status_changed(appointment):
     """Enviar webhook cuando cambia el estado de una cita"""
-    import os
     
-    # Usar os.environ en lugar de settings
-    webhook_url = os.environ.get('ZAPIER_NEW_APPOINTMENT_WEBHOOK')
-    
-    print(f"🔍 DEBUGGING:")
-    print(f"   webhook_url encontrada: {webhook_url is not None}")
+    webhook_url = getattr(settings, 'ZAPIER_STATUS_CHANGE_WEBHOOK', None)
     
     if not webhook_url:
-        print("❌ ZAPIER_NEW_APPOINTMENT_WEBHOOK no configurado")
         return
     
     # Solo para cambios importantes
