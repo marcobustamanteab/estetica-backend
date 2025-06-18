@@ -98,18 +98,10 @@ class GoogleCalendarService:
 📍 Estado: {appointment.get_status_display()}
 📝 Notas: {appointment.notes or 'Sin notas'}
 
-🔄 CAMBIAR ESTADO (edita el emoji del título):
-⏳ = Pendiente (Amarillo)
-✅ = Confirmada (Verde)  
-🎉 = Completada (Azul)
-❌ = Cancelada (Rojo)
-
 ⚠️ IMPORTANTE: 
-- Puedes cambiar el emoji para referencia visual
-- Para cambio oficial, actualiza desde el sistema web
 - Este evento se sincroniza automáticamente
 
-🌐 Sistema: {getattr(settings, 'FRONTEND_URL', 'https://tu-sistema.com')}
+🌐 Sistema: {getattr(settings, 'FRONTEND_URL', 'Creado por: ' + 'https://devsign.cl')}
                 '''.strip(),
                 'start': {
                     'dateTime': start_datetime.isoformat(),

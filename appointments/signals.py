@@ -194,6 +194,7 @@ def send_zapier_webhook_new_appointment(appointment):
         # Mensaje pre-formateado para WhatsApp (opcional)
         'whatsapp_message_client': generate_client_whatsapp_message(appointment),
         'whatsapp_message_admin': generate_admin_whatsapp_message(appointment),
+        'whatsapp_message_reminder': generate_reminder_message(appointment),
         
         # Metadatos
         'timestamp': appointment.created_at.isoformat(),
@@ -373,5 +374,54 @@ def generate_status_change_message(appointment):
 💅 Servicio: {appointment.service.name}
 
 ¡Gracias por preferirnos! ✨"""
+    
+    return message
+
+def generate_reminder_message(appointment):
+    """Generar mensaje de recordatorio para el día de la cita"""
+    import os
+    
+    # Variables personalizables
+    business_name = os.environ.get('BUSINESS_NAME', 'Centro de Estética')
+    arrival_time = os.environ.get('ARRIVAL_TIME', '10 minutos antes')
+    business_phone = os.environ.get('BUSINESS_PHONE', '+56 9 1234 5678')
+    
+    # FORMATEAR FECHA EN ESPAÑOL
+    dias_semana = {
+        'Monday': 'Lunes', 'Tuesday': 'Martes', 'Wednesday': 'Miércoles',
+        'Thursday': 'Jueves', 'Friday': 'Viernes', 'Saturday': 'Sábado', 'Sunday': 'Domingo'
+    }
+    
+    meses = {
+        'January': 'Enero', 'February': 'Febrero', 'March': 'Marzo',
+        'April': 'Abril', 'May': 'Mayo', 'June': 'Junio',
+        'July': 'Julio', 'August': 'Agosto', 'September': 'Septiembre',
+        'October': 'Octubre', 'November': 'Noviembre', 'December': 'Diciembre'
+    }
+    
+    # Convertir fecha
+    dia_ingles = appointment.date.strftime('%A')
+    mes_ingles = appointment.date.strftime('%B')
+    dia_esp = dias_semana.get(dia_ingles, dia_ingles)
+    mes_esp = meses.get(mes_ingles, mes_ingles)
+    
+    fecha_esp = f"{dia_esp}, {appointment.date.day} de {mes_esp} de {appointment.date.year}"
+    hora_esp = appointment.start_time.strftime('%I:%M %p')
+    
+    message = f"""🔔 ¡Hola {appointment.client.first_name}!
+
+📅 RECORDATORIO: Tu cita es HOY
+
+🕐 Hora: {hora_esp} - {fecha_esp}
+💅 Servicio: {appointment.service.name}
+👩‍💼 Con: {appointment.employee.get_full_name()}
+📍 En: {business_name}
+
+💡 RECORDATORIOS IMPORTANTES:
+- Llega {arrival_time}
+- Trae tu identificación
+- Si tienes algún inconveniente, llámanos: {business_phone}
+
+¡Te esperamos! ✨"""
     
     return message
