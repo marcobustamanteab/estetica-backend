@@ -26,14 +26,15 @@ class AppointmentViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
 
-        # Si el usuario no tiene negocio asignado, no devuelve nada
-        if not user.business:
+        # Filtrar por negocio
+        if user.is_superuser:
+            queryset = Appointment.objects.all()
+        elif user.business:
+            queryset = Appointment.objects.filter(business=user.business)
+        else:
             return Appointment.objects.none()
 
-        # Base: solo citas del negocio del usuario
-        queryset = Appointment.objects.filter(business=user.business)
-
-        # Filtro por rango de fechas
+        # Filtrando por fecha
         date_from = self.request.query_params.get('date_from')
         date_to = self.request.query_params.get('date_to')
 
@@ -42,7 +43,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         if date_to:
             queryset = queryset.filter(date__lte=date_to)
 
-        # Filtro por período (semana o mes actual)
+        # Filtrando por periodo
         period = self.request.query_params.get('period')
         today = datetime.now().date()
 
@@ -50,7 +51,6 @@ class AppointmentViewSet(viewsets.ModelViewSet):
             start_of_week = today - timedelta(days=today.weekday())
             end_of_week = start_of_week + timedelta(days=6)
             queryset = queryset.filter(date__range=[start_of_week, end_of_week])
-
         elif period == 'month':
             start_of_month = today.replace(day=1)
             if today.month == 12:

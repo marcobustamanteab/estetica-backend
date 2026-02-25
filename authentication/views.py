@@ -102,12 +102,12 @@ class UserRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
         return User.objects.filter(business=user.business)
 
     def perform_update(self, serializer):
-        """
-        Al actualizar un usuario:
-        - Solo el superadmin puede cambiar is_staff o is_superuser
-        - Un admin normal no puede escalar privilegios
-        """
         if not self.request.user.is_superuser:
-            serializer.save(is_staff=False, is_superuser=False)
+            # No puede escalar privilegios
+            # No puede desactivarse a sí mismo
+            extra = {'is_staff': False, 'is_superuser': False}
+            if serializer.instance == self.request.user:
+                extra['is_active'] = True  # Fuerza is_active=True si se edita a sí mismo
+            serializer.save(**extra)
         else:
             serializer.save()

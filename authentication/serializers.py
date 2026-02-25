@@ -25,7 +25,7 @@ class UserSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'profile_image', 'is_staff', 'is_superuser', 'is_active', 'groups')
+        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'profile_image', 'is_staff', 'is_superuser', 'is_active', 'groups', 'business')
         read_only_fields = ('id',)
     
     def get_groups(self, obj):
@@ -71,7 +71,7 @@ class AdminUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('id', 'username', 'email', 'first_name', 'last_name', 
-                  'is_active', 'is_staff', 'profile_image', 'password', 'groups')
+                  'is_active', 'is_staff', 'profile_image', 'password', 'groups', 'business')
         read_only_fields = ('id',)
     
     def create(self, validated_data):

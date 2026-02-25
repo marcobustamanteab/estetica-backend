@@ -8,7 +8,7 @@ from .views import (
     UserRetrieveUpdateDestroyView
 )
 from .views_roles import GroupListCreateView, GroupRetrieveUpdateDestroyView, PermissionListView, GroupPermissionsUpdateView
-
+from .views_business import BusinessListView
 
 urlpatterns = [
     # Endpoints de autenticación JWT
@@ -22,6 +22,8 @@ urlpatterns = [
     # Endpoints para gestión de usuarios
     path('users/', UserListCreateView.as_view(), name='user-list-create'),
     path('users/<int:pk>/', UserRetrieveUpdateDestroyView.as_view(), name='user-detail'),
+    
+    path('businesses/', BusinessListView.as_view(), name='businesses'),
     
     # Endpoints para gestión de grupos y permisos
     path('groups/', GroupListCreateView.as_view(), name='group-list-create'),
