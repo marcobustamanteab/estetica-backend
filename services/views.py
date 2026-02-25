@@ -41,18 +41,17 @@ class ServiceCategoryViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
 
-        # Si no tiene negocio asignado, no devuelve nada
-        if not user.business:
+        if user.is_superuser:
+            queryset = ServiceCategory.objects.all()
+        elif not user.business:
             return ServiceCategory.objects.none()
+        else:
+            queryset = ServiceCategory.objects.filter(business=user.business)
 
-        queryset = ServiceCategory.objects.filter(business=user.business)
-
-        # Filtro por estado activo/inactivo
         is_active = self.request.query_params.get('is_active', None)
         if is_active is not None:
             queryset = queryset.filter(is_active=is_active.lower() == 'true')
 
-        # Filtro por rol del empleado
         employee_id = self.request.query_params.get('employee_id', None)
         if employee_id:
             try:
@@ -144,13 +143,13 @@ class ServiceViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
 
-        # Si no tiene negocio asignado, no devuelve nada
-        if not user.business:
+        if user.is_superuser:
+            queryset = Service.objects.all()
+        elif not user.business:
             return Service.objects.none()
+        else:
+            queryset = Service.objects.filter(business=user.business)
 
-        queryset = Service.objects.filter(business=user.business)
-
-        # Filtro por estado activo/inactivo
         is_active = self.request.query_params.get('is_active', None)
         if is_active is not None:
             is_active = is_active.lower() == 'true'
@@ -159,7 +158,6 @@ class ServiceViewSet(viewsets.ModelViewSet):
             else:
                 queryset = queryset.filter(is_active=False)
 
-        # Filtro por categoría
         category = self.request.query_params.get('category', None)
         if category is not None:
             queryset = queryset.filter(category_id=category)
@@ -175,19 +173,23 @@ class ServiceViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def available_for_appointments(self, request):
-        """
-        Servicios disponibles para agendar citas (activos y con categoría activa)
-        """
         user = request.user
-        if not user.business:
+
+        if user.is_superuser:
+            queryset = Service.objects.filter(
+                is_active=True,
+                category__is_active=True
+            )
+        elif not user.business:
             return Response([])
+        else:
+            queryset = Service.objects.filter(
+                business=user.business,
+                is_active=True,
+                category__is_active=True
+            )
 
-        queryset = Service.objects.filter(
-            business=user.business,
-            is_active=True,
-            category__is_active=True
-        ).order_by('category__name', 'name')
-
+        queryset = queryset.order_by('category__name', 'name')
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 

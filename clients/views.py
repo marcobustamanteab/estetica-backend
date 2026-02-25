@@ -16,13 +16,17 @@ class ClientViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
 
-        # Si el usuario no tiene negocio asignado, no devuelve nada
-        if not user.business:
+        if user.is_superuser:
+            queryset = Client.objects.all()
+            # Superadmin puede filtrar por negocio via query param
+            business_id = self.request.query_params.get('business', None)
+            if business_id:
+                queryset = queryset.filter(business_id=business_id)
+        elif not user.business:
             return Client.objects.none()
+        else:
+            queryset = Client.objects.filter(business=user.business)
 
-        queryset = Client.objects.filter(business=user.business)
-
-        # Filtro opcional por estado activo/inactivo
         is_active = self.request.query_params.get('is_active', None)
         if is_active is not None:
             queryset = queryset.filter(is_active=is_active.lower() == 'true')
