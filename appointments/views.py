@@ -26,11 +26,19 @@ class AppointmentViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
 
-        # Filtrar por negocio
         if user.is_superuser:
             queryset = Appointment.objects.all()
-        elif user.business:
+        elif user.is_staff:
+            # Admin ve todas las citas de su negocio
+            if not user.business:
+                return Appointment.objects.none()
             queryset = Appointment.objects.filter(business=user.business)
+        elif user.business:
+            # Trabajador ve solo sus propias citas
+            queryset = Appointment.objects.filter(
+                business=user.business,
+                employee=user
+            )
         else:
             return Appointment.objects.none()
 
