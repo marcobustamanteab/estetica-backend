@@ -13,4 +13,5 @@ env/
 ENV/
 
 # Archivos locales
-.env
+.env.produccion
+.env.*
