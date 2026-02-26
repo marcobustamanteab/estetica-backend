@@ -23,4 +23,4 @@ RUN python manage.py collectstatic --noinput || echo "Skipping collectstatic"
 EXPOSE 8000
 
 # EJECUTAR MIGRACIONES Y LUEGO INICIAR SERVIDOR
-CMD ["sh", "-c", "python manage.py migrate && python manage.py migrate --run-syncdb && echo \"from authentication.models import User; User.objects.create_superuser('admin', 'marcoabustam@gmail.com', '123') if not User.objects.filter(username='admin').exists() else None\" | python manage.py shell && gunicorn backend.wsgi:application --bind 0.0.0.0:8000"]
+CMD ["sh", "-c", "python manage.py migrate && python manage.py migrate --run-syncdb && gunicorn backend.wsgi:application --bind 0.0.0.0:8000"]
