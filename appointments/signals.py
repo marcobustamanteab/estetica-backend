@@ -11,6 +11,8 @@ import json
 import os
 from datetime import datetime
 import locale
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
     
 
 # Configurar logging
@@ -22,26 +24,147 @@ def handle_appointment_created_updated(sender, instance, created, **kwargs):
     Signal que se ejecuta cada vez que se guarda una cita
     """
     if created:
-        # NUEVA CITA CREADA
         logger.info(f"🔔 Signal: Nueva cita creada - ID: {instance.id}")
         create_google_calendar_event(instance)
+        send_confirmation_email(instance)
     else:
-        # CITA ACTUALIZADA
         logger.info(f"🔔 Signal: Cita actualizada - ID: {instance.id}")
         update_google_calendar_event(instance)
 
 def format_chilean_price(price):
     """Formatear precio al estilo chileno"""
     try:
-        # Convertir a entero (quitar decimales)
         price_int = int(float(price))
-        
-        # Formatear con separadores de miles
         formatted = f"{price_int:,}".replace(',', '.')
-        
         return f"${formatted}"
     except:
         return f"${price}"
+
+def format_date_spanish(date):
+    """Formatear fecha en español"""
+    dias_semana = {
+        'Monday': 'Lunes', 'Tuesday': 'Martes', 'Wednesday': 'Miércoles',
+        'Thursday': 'Jueves', 'Friday': 'Viernes', 'Saturday': 'Sábado', 'Sunday': 'Domingo'
+    }
+    meses = {
+        'January': 'Enero', 'February': 'Febrero', 'March': 'Marzo',
+        'April': 'Abril', 'May': 'Mayo', 'June': 'Junio',
+        'July': 'Julio', 'August': 'Agosto', 'September': 'Septiembre',
+        'October': 'Octubre', 'November': 'Noviembre', 'December': 'Diciembre'
+    }
+    dia_esp = dias_semana.get(date.strftime('%A'), date.strftime('%A'))
+    mes_esp = meses.get(date.strftime('%B'), date.strftime('%B'))
+    return f"{dia_esp}, {date.day} de {mes_esp} de {date.year}"
+
+
+def send_confirmation_email(appointment):
+    """
+    Enviar email de confirmación al cliente cuando se agenda una cita
+    """
+    try:
+        client_email = appointment.client.email
+        if not client_email:
+            logger.warning(f"⚠️ Cliente {appointment.client.get_full_name()} no tiene email")
+            return
+
+        business_name = os.environ.get('BUSINESS_NAME', 'BeautyCare')
+        precio_formateado = format_chilean_price(appointment.service.price)
+        fecha_esp = format_date_spanish(appointment.date)
+        hora_esp = appointment.start_time.strftime('%H:%M')
+        cancellation_policy = os.environ.get('CANCELLATION_POLICY', '24 horas de anticipación')
+
+        subject = f"✅ Confirmación de tu cita en {business_name}"
+
+        message = f"""Hola {appointment.client.first_name},
+
+Tu cita ha sido agendada exitosamente en {business_name}.
+
+DETALLES DE TU CITA:
+📅 Fecha: {fecha_esp}
+🕐 Hora: {hora_esp}
+💅 Servicio: {appointment.service.name}
+👩‍💼 Especialista: {appointment.employee.get_full_name()}
+💰 Precio: {precio_formateado}
+
+RECORDATORIOS:
+- Llega 10 minutos antes
+- Cancelaciones con {cancellation_policy} de anticipación
+
+Si tienes alguna pregunta, responde a este correo.
+
+¡Te esperamos!
+{business_name}
+"""
+
+        html_message = f"""
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb;">
+    <div style="background-color: #0d9488; padding: 20px; border-radius: 8px 8px 0 0; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">{business_name}</h1>
+    </div>
+    
+    <div style="background-color: white; padding: 30px; border-radius: 0 0 8px 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <h2 style="color: #0d9488; margin-top: 0;">✅ ¡Tu cita está confirmada!</h2>
+        <p style="color: #374151;">Hola <strong>{appointment.client.first_name}</strong>,</p>
+        <p style="color: #374151;">Tu cita ha sido agendada exitosamente. Aquí están los detalles:</p>
+        
+        <div style="background-color: #f0fdfa; border-left: 4px solid #0d9488; padding: 16px; border-radius: 4px; margin: 20px 0;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr style="margin-bottom: 8px;">
+                    <td style="padding: 6px 0; color: #6b7280; width: 140px;">📅 Fecha</td>
+                    <td style="padding: 6px 0; color: #111827; font-weight: bold;">{fecha_esp}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 6px 0; color: #6b7280;">🕐 Hora</td>
+                    <td style="padding: 6px 0; color: #111827; font-weight: bold;">{hora_esp}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 6px 0; color: #6b7280;">💅 Servicio</td>
+                    <td style="padding: 6px 0; color: #111827; font-weight: bold;">{appointment.service.name}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 6px 0; color: #6b7280;">👩‍💼 Especialista</td>
+                    <td style="padding: 6px 0; color: #111827; font-weight: bold;">{appointment.employee.get_full_name()}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 6px 0; color: #6b7280;">💰 Precio</td>
+                    <td style="padding: 6px 0; color: #111827; font-weight: bold;">{precio_formateado}</td>
+                </tr>
+            </table>
+        </div>
+        
+        <div style="background-color: #fefce8; border: 1px solid #fde68a; padding: 12px 16px; border-radius: 4px; margin: 16px 0;">
+            <p style="margin: 0; color: #92400e; font-size: 14px;">
+                💡 <strong>Recordatorios:</strong><br>
+                • Llega 10 minutos antes de tu cita<br>
+                • Cancelaciones con {cancellation_policy} de anticipación
+            </p>
+        </div>
+        
+        <p style="color: #6b7280; font-size: 14px; margin-top: 24px;">
+            Si tienes alguna pregunta, responde a este correo.<br><br>
+            ¡Te esperamos! ✨<br>
+            <strong>{business_name}</strong>
+        </p>
+    </div>
+</div>
+"""
+
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[client_email],
+            html_message=html_message,
+            fail_silently=False,
+        )
+
+        logger.info(f"✅ Email de confirmación enviado a {client_email}")
+
+    except Exception as e:
+        logger.error(f"❌ Error enviando email de confirmación: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+
 
 def create_google_calendar_event(appointment):
     """
@@ -50,11 +173,9 @@ def create_google_calendar_event(appointment):
     try:
         logger.info(f"📅 Intentando crear evento en Google Calendar para cita ID: {appointment.id}")
         
-        # NUEVO: Verificar y crear calendario automáticamente si no existe
         if not appointment.employee.google_calendar_id:
             logger.info(f"⚠️ Empleado {appointment.employee.username} no tiene calendar_id, creando automáticamente...")
             
-            # Crear calendario automáticamente
             calendar_service = GoogleCalendarService()
             calendar_id = calendar_service.create_employee_calendar(
                 appointment.employee.get_full_name(),
@@ -69,22 +190,13 @@ def create_google_calendar_event(appointment):
                 logger.error(f"❌ No se pudo crear calendario automáticamente")
                 return
         
-        # Crear servicio de Google Calendar
         calendar_service = GoogleCalendarService()
-        
-        # Crear evento
         event_id = calendar_service.create_appointment_event(appointment)
         
         if event_id:
-            # Guardar el ID del evento en la cita
             appointment.google_calendar_event_id = event_id
             appointment.save(update_fields=['google_calendar_event_id'])
-            
             logger.info(f"✅ Evento creado exitosamente en Google Calendar")
-            logger.info(f"📅 Event ID: {event_id}")
-            logger.info(f"👤 Empleado: {appointment.employee.get_full_name()}")
-            logger.info(f"📧 Cliente: {appointment.client.get_full_name()}")
-            
         else:
             logger.error(f"❌ No se pudo crear evento en Google Calendar")
         
@@ -92,7 +204,6 @@ def create_google_calendar_event(appointment):
             
     except Exception as e:
         logger.error(f"❌ Error creando evento en Google Calendar: {e}")
-        # Imprimir traceback completo para debug
         import traceback
         logger.error(traceback.format_exc())
 
@@ -101,17 +212,14 @@ def update_google_calendar_event(appointment):
     Actualizar evento en Google Calendar cuando cambia la cita
     """
     try:
-        # Solo actualizar si ya tiene un evento creado
         if not appointment.google_calendar_event_id:
             logger.info(f"ℹ️ Cita ID: {appointment.id} no tiene evento en Google Calendar")
             return
         
-        # Verificar si cambió el estado
         if hasattr(appointment, '_old_status') and appointment._old_status != appointment.status:
             logger.info(f"🔄 Estado cambió de {appointment._old_status} a {appointment.status}")
             
             calendar_service = GoogleCalendarService()
-            
             success = calendar_service.update_appointment_event(
                 appointment, 
                 appointment.google_calendar_event_id
@@ -145,7 +253,6 @@ def send_zapier_webhook_new_appointment(appointment):
     """
     import os
     
-    # Usar os.environ en lugar de settings
     webhook_url = os.environ.get('ZAPIER_NEW_APPOINTMENT_WEBHOOK')
     
     print(f"🔍 DEBUGGING:")
@@ -155,20 +262,15 @@ def send_zapier_webhook_new_appointment(appointment):
         print("❌ ZAPIER_NEW_APPOINTMENT_WEBHOOK no configurado")
         return
     
-    # Formatear teléfono para WhatsApp (agregar código país si no lo tiene)
     client_phone = appointment.client.phone or ""
     clean_phone = ''.join(filter(str.isdigit, client_phone))
     
-    # Agregar código de Chile (+56) si no lo tiene
     if clean_phone and not clean_phone.startswith('56'):
         clean_phone = '56' + clean_phone
     
-    # Datos para Zapier
     payload = {
         'event': 'nueva_cita',
         'appointment_id': appointment.id,
-        
-        # Datos del cliente
         'client': {
             'name': appointment.client.get_full_name(),
             'first_name': appointment.client.first_name,
@@ -176,23 +278,17 @@ def send_zapier_webhook_new_appointment(appointment):
             'phone': clean_phone,
             'phone_display': appointment.client.phone,
         },
-        
-        # Datos del servicio
         'service': {
             'name': appointment.service.name,
             'price': float(appointment.service.price),
             'duration': appointment.service.duration,
             'category': appointment.service.category.name if appointment.service.category else 'Sin categoría',
         },
-        
-        # Datos del empleado
         'employee': {
             'name': appointment.employee.get_full_name(),
             'first_name': appointment.employee.first_name,
             'email': appointment.employee.email,
         },
-        
-        # Datos de la cita
         'appointment': {
             'date': appointment.date.strftime('%Y-%m-%d'),
             'date_formatted': appointment.date.strftime('%A, %d de %B de %Y'),
@@ -203,15 +299,11 @@ def send_zapier_webhook_new_appointment(appointment):
             'status_display': appointment.get_status_display(),
             'notes': appointment.notes or '',
         },
-        
-        # Mensaje pre-formateado para WhatsApp (opcional)
         'whatsapp_message_client': generate_client_whatsapp_message(appointment),
         'whatsapp_message_admin': generate_admin_whatsapp_message(appointment),
         'whatsapp_message_reminder': generate_reminder_message(appointment),
-        
-        # Metadatos
         'timestamp': appointment.created_at.isoformat(),
-        'source': 'admin_panel',  # vs 'public_link' en el futuro
+        'source': 'admin_panel',
     }
     
     try:
@@ -232,41 +324,12 @@ def send_zapier_webhook_new_appointment(appointment):
 
 def generate_client_whatsapp_message(appointment):
     """Generar mensaje de WhatsApp para el cliente"""
-    # Variables personalizables
     precio_formateado = format_chilean_price(appointment.service.price)
-    
     business_name = os.environ.get('BUSINESS_NAME', 'Centro de Estética')
     arrival_time = os.environ.get('ARRIVAL_TIME', '10 minutos antes')
     cancellation_policy = os.environ.get('CANCELLATION_POLICY', '24 horas de anticipación')
     
-    # FORMATEAR FECHA EN ESPAÑOL
-    dias_semana = {
-        'Monday': 'Lunes',
-        'Tuesday': 'Martes', 
-        'Wednesday': 'Miércoles',
-        'Thursday': 'Jueves',
-        'Friday': 'Viernes',
-        'Saturday': 'Sábado',
-        'Sunday': 'Domingo'
-    }
-    
-    meses = {
-        'January': 'Enero', 'February': 'Febrero', 'March': 'Marzo',
-        'April': 'Abril', 'May': 'Mayo', 'June': 'Junio',
-        'July': 'Julio', 'August': 'Agosto', 'September': 'Septiembre',
-        'October': 'Octubre', 'November': 'Noviembre', 'December': 'Diciembre'
-    }
-    
-    # Obtener día de la semana y mes en inglés
-    dia_ingles = appointment.date.strftime('%A')
-    mes_ingles = appointment.date.strftime('%B')
-    
-    # Convertir a español
-    dia_esp = dias_semana.get(dia_ingles, dia_ingles)
-    mes_esp = meses.get(mes_ingles, mes_ingles)
-    
-    # Formatear fecha completa en español
-    fecha_esp = f"{dia_esp}, {appointment.date.day} de {mes_esp} de {appointment.date.year}"
+    fecha_esp = format_date_spanish(appointment.date)
     hora_esp = appointment.start_time.strftime('%I:%M %p')
     
     message = f"""🌟 ¡Hola {appointment.client.first_name}!
@@ -313,11 +376,8 @@ def generate_admin_whatsapp_message(appointment):
     
     return message
 
-# Para manejar cambios de estado también
 def handle_appointment_updated(appointment):
     """Manejar actualizaciones de cita"""
-    
-    # Si cambió el estado, enviar webhook de cambio
     if hasattr(appointment, '_old_status') and appointment._old_status != appointment.status:
         send_zapier_webhook_status_changed(appointment)
 
@@ -329,7 +389,6 @@ def send_zapier_webhook_status_changed(appointment):
     if not webhook_url:
         return
     
-    # Solo para cambios importantes
     important_statuses = ['confirmed', 'cancelled', 'completed']
     if appointment.status not in important_statuses:
         return
@@ -396,31 +455,11 @@ def generate_reminder_message(appointment):
     """Generar mensaje de recordatorio para el día de la cita"""
     import os
     
-    # Variables personalizables
     business_name = os.environ.get('BUSINESS_NAME', 'Centro de Estética')
     arrival_time = os.environ.get('ARRIVAL_TIME', '10 minutos antes')
     business_phone = os.environ.get('BUSINESS_PHONE', '+56 9 1234 5678')
     
-    # FORMATEAR FECHA EN ESPAÑOL
-    dias_semana = {
-        'Monday': 'Lunes', 'Tuesday': 'Martes', 'Wednesday': 'Miércoles',
-        'Thursday': 'Jueves', 'Friday': 'Viernes', 'Saturday': 'Sábado', 'Sunday': 'Domingo'
-    }
-    
-    meses = {
-        'January': 'Enero', 'February': 'Febrero', 'March': 'Marzo',
-        'April': 'Abril', 'May': 'Mayo', 'June': 'Junio',
-        'July': 'Julio', 'August': 'Agosto', 'September': 'Septiembre',
-        'October': 'Octubre', 'November': 'Noviembre', 'December': 'Diciembre'
-    }
-    
-    # Convertir fecha
-    dia_ingles = appointment.date.strftime('%A')
-    mes_ingles = appointment.date.strftime('%B')
-    dia_esp = dias_semana.get(dia_ingles, dia_ingles)
-    mes_esp = meses.get(mes_ingles, mes_ingles)
-    
-    fecha_esp = f"{dia_esp}, {appointment.date.day} de {mes_esp} de {appointment.date.year}"
+    fecha_esp = format_date_spanish(appointment.date)
     hora_esp = appointment.start_time.strftime('%I:%M %p')
     
     message = f"""🔔 ¡Hola {appointment.client.first_name}!
