@@ -30,10 +30,6 @@ logger = logging.getLogger(__name__)
 
 
 class ServiceCategoryViewSet(viewsets.ModelViewSet):
-    """
-    API endpoint para categorías de servicios.
-    Cada usuario solo ve las categorías de su propio negocio.
-    """
     queryset = ServiceCategory.objects.all()
     serializer_class = ServiceCategorySerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -43,6 +39,9 @@ class ServiceCategoryViewSet(viewsets.ModelViewSet):
 
         if user.is_superuser:
             queryset = ServiceCategory.objects.all()
+            business_id = self.request.query_params.get('business', None)
+            if business_id:
+                queryset = queryset.filter(business_id=business_id)
         elif not user.business:
             return ServiceCategory.objects.none()
         else:
@@ -83,9 +82,6 @@ class ServiceCategoryViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def assign_roles(self, request, pk=None):
-        """
-        Asigna roles a una categoría específica
-        """
         try:
             category = ServiceCategory.objects.get(pk=pk)
             logger.info(f"Asignando roles a categoría: {category.id} - {category.name}")
@@ -94,10 +90,8 @@ class ServiceCategoryViewSet(viewsets.ModelViewSet):
             if not role_ids:
                 return Response({"error": "No se proporcionaron roles"}, status=400)
 
-            # Eliminar roles existentes
             RoleCategoryPermission.objects.filter(category=category).delete()
 
-            # Asignar nuevos roles
             successful_assignments = []
             failed_assignments = []
 
@@ -132,10 +126,6 @@ class ServiceCategoryViewSet(viewsets.ModelViewSet):
 
 
 class ServiceViewSet(viewsets.ModelViewSet):
-    """
-    API endpoint para servicios.
-    Cada usuario solo ve los servicios de su propio negocio.
-    """
     queryset = Service.objects.all()
     serializer_class = ServiceSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -145,6 +135,9 @@ class ServiceViewSet(viewsets.ModelViewSet):
 
         if user.is_superuser:
             queryset = Service.objects.all()
+            business_id = self.request.query_params.get('business', None)
+            if business_id:
+                queryset = queryset.filter(business_id=business_id)
         elif not user.business:
             return Service.objects.none()
         else:
@@ -176,10 +169,18 @@ class ServiceViewSet(viewsets.ModelViewSet):
         user = request.user
 
         if user.is_superuser:
-            queryset = Service.objects.filter(
-                is_active=True,
-                category__is_active=True
-            )
+            business_id = request.query_params.get('business', None)
+            if business_id:
+                queryset = Service.objects.filter(
+                    business_id=business_id,
+                    is_active=True,
+                    category__is_active=True
+                )
+            else:
+                queryset = Service.objects.filter(
+                    is_active=True,
+                    category__is_active=True
+                )
         elif not user.business:
             return Response([])
         else:
@@ -195,9 +196,6 @@ class ServiceViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get'])
     def employees(self, request, pk=None):
-        """
-        Empleados del mismo negocio que pueden realizar este servicio
-        """
         try:
             service = self.get_object()
             category = service.category
@@ -207,13 +205,11 @@ class ServiceViewSet(viewsets.ModelViewSet):
             ).values_list('role_id', flat=True)
 
             if not allowed_roles:
-                # Sin restricción de roles: todos los empleados activos del negocio
                 users_with_roles = User.objects.filter(
                     business=request.user.business,
                     is_active=True
                 )
             else:
-                # Solo empleados con los roles permitidos, del mismo negocio
                 users_with_roles = User.objects.filter(
                     business=request.user.business,
                     groups__in=allowed_roles,
@@ -230,9 +226,6 @@ class ServiceViewSet(viewsets.ModelViewSet):
 
 
 class RoleCategoryPermissionViewSet(viewsets.ModelViewSet):
-    """
-    API endpoint para permisos de categorías por rol
-    """
     queryset = RoleCategoryPermission.objects.all()
     serializer_class = RoleCategoryPermissionSerializer
     permission_classes = [permissions.IsAuthenticated]

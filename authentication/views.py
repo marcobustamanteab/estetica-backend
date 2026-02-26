@@ -103,11 +103,12 @@ class UserRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
 
     def perform_update(self, serializer):
         if not self.request.user.is_superuser:
-            # No puede escalar privilegios
-            # No puede desactivarse a sí mismo
-            extra = {'is_staff': False, 'is_superuser': False}
+            extra = {'is_superuser': False}
+            # Solo forzar is_staff=False si el usuario editado no era ya staff
+            if not serializer.instance.is_staff:
+                extra['is_staff'] = False
             if serializer.instance == self.request.user:
-                extra['is_active'] = True  # Fuerza is_active=True si se edita a sí mismo
+                extra['is_active'] = True
             serializer.save(**extra)
         else:
             serializer.save()
