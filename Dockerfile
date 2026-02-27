@@ -26,4 +26,5 @@ EXPOSE 8000
 # CMD ["sh", "-c", "python manage.py migrate && python manage.py migrate --run-syncdb && gunicorn backend.wsgi:application --bind 0.0.0.0:8000"]
 # CMD ["sh", "-c", "python manage.py migrate --noinput && gunicorn backend.wsgi:application --bind 0.0.0.0:$PORT --log-level debug"]
 # CMD ["sh", "-c", "echo 'Starting...' && env | grep PORT && python manage.py migrate --noinput && echo 'Migrations done' && gunicorn backend.wsgi:application --bind 0.0.0.0:${PORT:-8000} --log-level debug --timeout 120"]
+
 CMD ["sh", "-c", "python manage.py migrate --noinput 2>&1; echo EXIT_CODE:$?; gunicorn backend.wsgi:application --bind 0.0.0.0:${PORT:-8000} 2>&1"]
