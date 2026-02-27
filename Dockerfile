@@ -24,4 +24,5 @@ EXPOSE 8000
 
 # EJECUTAR MIGRACIONES Y LUEGO INICIAR SERVIDOR
 # CMD ["sh", "-c", "python manage.py migrate && python manage.py migrate --run-syncdb && gunicorn backend.wsgi:application --bind 0.0.0.0:8000"]
-CMD ["sh", "-c", "python manage.py migrate --noinput && gunicorn backend.wsgi:application --bind 0.0.0.0:$PORT --log-level debug"]
+# CMD ["sh", "-c", "python manage.py migrate --noinput && gunicorn backend.wsgi:application --bind 0.0.0.0:$PORT --log-level debug"]
+CMD ["sh", "-c", "python manage.py migrate --noinput && gunicorn backend.wsgi:application --bind 0.0.0.0:${PORT:-8000} --log-level debug"]
