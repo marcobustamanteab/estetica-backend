@@ -4,6 +4,7 @@ from django.core.management.base import BaseCommand
 from datetime import date, timedelta
 import os
 import logging
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -89,6 +90,7 @@ class Command(BaseCommand):
 
                 resend.Emails.send(params)
                 sent += 1
+                time.sleep(0.6)  # Para evitar rate limits
                 self.stdout.write(self.style.SUCCESS(f"✅ Recordatorio enviado a {client_email}"))
 
             except Exception as e:
