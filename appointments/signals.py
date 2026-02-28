@@ -1,5 +1,6 @@
 # appointments/signals.py
 
+import threading
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from .models import Appointment
@@ -20,16 +21,23 @@ logger = logging.getLogger(__name__)
 
 @receiver(post_save, sender=Appointment)
 def handle_appointment_created_updated(sender, instance, created, **kwargs):
-    """
-    Signal que se ejecuta cada vez que se guarda una cita
-    """
     if created:
         logger.info(f"🔔 Signal: Nueva cita creada - ID: {instance.id}")
-        create_google_calendar_event(instance)
-        send_confirmation_email(instance)
+        # Ejecutar en background para no bloquear el request
+        thread = threading.Thread(
+            target=run_background_tasks,
+            args=(instance,),
+            daemon=True
+        )
+        thread.start()
     else:
         logger.info(f"🔔 Signal: Cita actualizada - ID: {instance.id}")
         update_google_calendar_event(instance)
+
+def run_background_tasks(appointment):
+    """Ejecutar tareas lentas en background"""
+    create_google_calendar_event(appointment)
+    send_confirmation_email(appointment)
 
 def format_chilean_price(price):
     """Formatear precio al estilo chileno"""
