@@ -1,6 +1,7 @@
 # appointments/views.py
 from rest_framework import viewsets, permissions, status, filters
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from datetime import datetime, timedelta
@@ -8,13 +9,22 @@ from django.db import models
 from .models import Appointment
 from .serializers import AppointmentSerializer, CalendarAppointmentSerializer
 from authentication.models import User
+import os
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def send_reminders(request):
+    secret = request.headers.get('X-Cron-Secret')
+    if secret != os.environ.get('CRON_SECRET', 'cron-secret-123'):
+        return Response({'error': 'Unauthorized'}, status=401)
+    
+    from django.core.management import call_command
+    call_command('send_appointment_reminders')
+    return Response({'status': 'ok'})
 
 
 class AppointmentViewSet(viewsets.ModelViewSet):
-    """
-    API endpoint para citas.
-    Cada usuario solo ve las citas de su propio negocio.
-    """
     queryset = Appointment.objects.all()
     serializer_class = AppointmentSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -29,12 +39,10 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         if user.is_superuser:
             queryset = Appointment.objects.all()
         elif user.is_staff:
-            # Admin ve todas las citas de su negocio
             if not user.business:
                 return Appointment.objects.none()
             queryset = Appointment.objects.filter(business=user.business)
         elif user.business:
-            # Trabajador ve solo sus propias citas
             queryset = Appointment.objects.filter(
                 business=user.business,
                 employee=user
@@ -42,7 +50,6 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         else:
             return Appointment.objects.none()
 
-        # Filtrando por fecha
         date_from = self.request.query_params.get('date_from')
         date_to = self.request.query_params.get('date_to')
 
@@ -51,7 +58,6 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         if date_to:
             queryset = queryset.filter(date__lte=date_to)
 
-        # Filtrando por periodo
         period = self.request.query_params.get('period')
         today = datetime.now().date()
 
@@ -77,9 +83,6 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         serializer.save(business=business)
 
     def update(self, request, *args, **kwargs):
-        """
-        Impide editar citas que ya están completadas
-        """
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
 
@@ -96,9 +99,6 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     def partial_update(self, request, *args, **kwargs):
-        """
-        Impide cambiar el estado de citas completadas
-        """
         instance = self.get_object()
 
         if instance.status == 'completed' and 'status' in request.data:
@@ -111,19 +111,12 @@ class AppointmentViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def calendar(self, request):
-        """
-        Retorna las citas en formato de calendario
-        """
         queryset = self.get_queryset()
         serializer = CalendarAppointmentSerializer(queryset, many=True)
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'])
     def employee_availability(self, request):
-        """
-        Verifica disponibilidad de empleados para una fecha y hora específicas.
-        Solo busca entre los empleados del mismo negocio.
-        """
         date = request.query_params.get('date')
         start_time = request.query_params.get('start_time')
         service_id = request.query_params.get('service_id')
@@ -148,12 +141,10 @@ class AppointmentViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_404_NOT_FOUND
                 )
 
-            # Calcular hora de fin
             start_datetime = datetime.combine(appointment_date, appointment_start)
             end_datetime = start_datetime + timedelta(minutes=duration)
             appointment_end = end_datetime.time()
 
-            # Empleados ocupados en ese horario (solo del mismo negocio)
             busy_employees = Appointment.objects.filter(
                 business=request.user.business,
                 date=appointment_date,
@@ -163,7 +154,6 @@ class AppointmentViewSet(viewsets.ModelViewSet):
                 models.Q(end_time__gt=appointment_start)
             ).values_list('employee_id', flat=True)
 
-            # Empleados disponibles del mismo negocio
             available_employees = User.objects.filter(
                 business=request.user.business
             ).exclude(id__in=busy_employees)
