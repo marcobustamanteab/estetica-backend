@@ -61,22 +61,19 @@ class UserListCreateView(generics.ListCreateAPIView):
         return User.objects.filter(business=user.business)
 
     def perform_create(self, serializer):
-        """
-        Al crear un usuario:
-        - Se asigna automáticamente el negocio del admin que lo crea
-        - Solo el superadmin puede crear administradores (is_staff/is_superuser)
-        """
-        business = self.request.user.business
-        if not business:
-            raise ValidationError("Tu usuario no tiene un negocio asignado.")
-
-        # Si no es superadmin, forzar is_staff e is_superuser a False
-        data = {}
-        if not self.request.user.is_superuser:
-            data['is_staff'] = False
-            data['is_superuser'] = False
-
-        serializer.save(business=business, **data)
+        user = self.request.user
+        
+        if user.is_superuser:
+            # Superadmin puede crear usuarios en cualquier negocio
+            # El negocio viene en el request data
+            serializer.save()
+        else:
+            business = user.business
+            if not business:
+                raise ValidationError("Tu usuario no tiene un negocio asignado.")
+            
+            data = {'is_staff': False, 'is_superuser': False}
+            serializer.save(business=business, **data)
 
 
 class UserRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
