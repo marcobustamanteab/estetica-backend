@@ -21,7 +21,7 @@ def public_business_info(request, slug):
     )
     
     employees = business.users.filter(
-        is_active=True, is_staff=False
+    is_active=True
     ).values('id', 'first_name', 'last_name')
     
     return Response({
