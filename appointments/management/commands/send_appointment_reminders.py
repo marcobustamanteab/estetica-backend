@@ -81,7 +81,7 @@ class Command(BaseCommand):
 """
 
                 params = {
-                    "from": f"{business_name} <onboarding@resend.dev>",
+                    "from": f"{business_name} <no-reply@devsign.cl>",
                     "to": [client_email],
                     "subject": subject,
                     "html": html_message,

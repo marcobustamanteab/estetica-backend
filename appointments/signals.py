@@ -119,7 +119,7 @@ def send_confirmation_email(appointment):
 """
 
         params = {
-            "from": f"{business_name} <notificaciones.beautycare@gmail.com>",
+            "from": f"{business_name} <no-reply@devsign.cl>",
             "to": [client_email],
             "subject": subject,
             "html": html_message,
