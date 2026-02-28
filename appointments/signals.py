@@ -77,7 +77,7 @@ def send_confirmation_email(appointment):
             return
 
         resend.api_key = os.environ.get('RESEND_API_KEY')
-        business_name = os.environ.get('BUSINESS_NAME', 'BeautyCare')
+        business_name = appointment.business.name if appointment.business else os.environ.get('BUSINESS_NAME', 'BeautyCare')
         precio_formateado = format_chilean_price(appointment.service.price)
         fecha_esp = format_date_spanish(appointment.date)
         hora_esp = appointment.start_time.strftime('%H:%M')

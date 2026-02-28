@@ -36,7 +36,7 @@ class Command(BaseCommand):
                     self.stdout.write(f"⚠️ Cliente {appointment.client.get_full_name()} sin email")
                     continue
 
-                business_name = os.environ.get('BUSINESS_NAME', 'BeautyCare')
+                business_name = appointment.business.name if appointment.business else os.environ.get('BUSINESS_NAME', 'BeautyCare')
                 
                 dias = {
                     'Monday': 'Lunes', 'Tuesday': 'Martes', 'Wednesday': 'Miércoles',
