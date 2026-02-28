@@ -19,10 +19,16 @@ def send_reminders(request):
     if secret != os.environ.get('CRON_SECRET', 'cron-secret-123'):
         return Response({'error': 'Unauthorized'}, status=401)
     
+    import threading
     from django.core.management import call_command
-    call_command('send_appointment_reminders')
+    
+    def run():
+        call_command('send_appointment_reminders')
+    
+    thread = threading.Thread(target=run, daemon=True)
+    thread.start()
+    
     return Response({'status': 'ok'})
-
 
 class AppointmentViewSet(viewsets.ModelViewSet):
     queryset = Appointment.objects.all()
