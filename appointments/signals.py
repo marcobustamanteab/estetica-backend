@@ -119,7 +119,7 @@ def send_confirmation_email(appointment):
 """
 
         params = {
-            "from": f"{business_name} <onboarding@resend.dev>",
+            "from": f"{business_name} <notificaciones.beautycare@gmail.com>",
             "to": [client_email],
             "subject": subject,
             "html": html_message,
