@@ -3,6 +3,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.utils.translation import gettext_lazy as _
+from django.utils.text import slugify
 
 
 class Business(models.Model):
@@ -12,6 +13,7 @@ class Business(models.Model):
     Todo (usuarios, clientes, citas, servicios) quedará asociado a un Business.
     """
     name = models.CharField(max_length=200, verbose_name="Nombre del negocio")
+    slug = models.SlugField(max_length=200, unique=True, blank=True, null=True)
     owner = models.OneToOneField(
         'User',
         on_delete=models.CASCADE,
@@ -25,6 +27,11 @@ class Business(models.Model):
     class Meta:
         verbose_name = "Negocio"
         verbose_name_plural = "Negocios"
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name
@@ -49,7 +56,6 @@ class User(AbstractUser):
     )
 
     # Cada usuario pertenece a un negocio
-    # null=True para no romper los usuarios que ya existen en la BD
     business = models.ForeignKey(
         Business,
         on_delete=models.SET_NULL,
