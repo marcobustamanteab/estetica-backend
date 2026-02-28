@@ -70,11 +70,13 @@ def send_confirmation_email(appointment):
     Enviar email de confirmación al cliente cuando se agenda una cita
     """
     try:
+        import resend
         client_email = appointment.client.email
         if not client_email:
             logger.warning(f"⚠️ Cliente {appointment.client.get_full_name()} no tiene email")
             return
 
+        resend.api_key = os.environ.get('RESEND_API_KEY')
         business_name = os.environ.get('BUSINESS_NAME', 'BeautyCare')
         precio_formateado = format_chilean_price(appointment.service.price)
         fecha_esp = format_date_spanish(appointment.date)
@@ -83,63 +85,24 @@ def send_confirmation_email(appointment):
 
         subject = f"✅ Confirmación de tu cita en {business_name}"
 
-        message = f"""Hola {appointment.client.first_name},
-
-Tu cita ha sido agendada exitosamente en {business_name}.
-
-DETALLES DE TU CITA:
-📅 Fecha: {fecha_esp}
-🕐 Hora: {hora_esp}
-💅 Servicio: {appointment.service.name}
-👩‍💼 Especialista: {appointment.employee.get_full_name()}
-💰 Precio: {precio_formateado}
-
-RECORDATORIOS:
-- Llega 10 minutos antes
-- Cancelaciones con {cancellation_policy} de anticipación
-
-Si tienes alguna pregunta, responde a este correo.
-
-¡Te esperamos!
-{business_name}
-"""
-
         html_message = f"""
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb;">
     <div style="background-color: #0d9488; padding: 20px; border-radius: 8px 8px 0 0; text-align: center;">
         <h1 style="color: white; margin: 0; font-size: 24px;">{business_name}</h1>
     </div>
-    
     <div style="background-color: white; padding: 30px; border-radius: 0 0 8px 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
         <h2 style="color: #0d9488; margin-top: 0;">✅ ¡Tu cita está confirmada!</h2>
         <p style="color: #374151;">Hola <strong>{appointment.client.first_name}</strong>,</p>
         <p style="color: #374151;">Tu cita ha sido agendada exitosamente. Aquí están los detalles:</p>
-        
         <div style="background-color: #f0fdfa; border-left: 4px solid #0d9488; padding: 16px; border-radius: 4px; margin: 20px 0;">
             <table style="width: 100%; border-collapse: collapse;">
-                <tr style="margin-bottom: 8px;">
-                    <td style="padding: 6px 0; color: #6b7280; width: 140px;">📅 Fecha</td>
-                    <td style="padding: 6px 0; color: #111827; font-weight: bold;">{fecha_esp}</td>
-                </tr>
-                <tr>
-                    <td style="padding: 6px 0; color: #6b7280;">🕐 Hora</td>
-                    <td style="padding: 6px 0; color: #111827; font-weight: bold;">{hora_esp}</td>
-                </tr>
-                <tr>
-                    <td style="padding: 6px 0; color: #6b7280;">💅 Servicio</td>
-                    <td style="padding: 6px 0; color: #111827; font-weight: bold;">{appointment.service.name}</td>
-                </tr>
-                <tr>
-                    <td style="padding: 6px 0; color: #6b7280;">👩‍💼 Especialista</td>
-                    <td style="padding: 6px 0; color: #111827; font-weight: bold;">{appointment.employee.get_full_name()}</td>
-                </tr>
-                <tr>
-                    <td style="padding: 6px 0; color: #6b7280;">💰 Precio</td>
-                    <td style="padding: 6px 0; color: #111827; font-weight: bold;">{precio_formateado}</td>
-                </tr>
+                <tr><td style="padding: 6px 0; color: #6b7280; width: 140px;">📅 Fecha</td><td style="padding: 6px 0; color: #111827; font-weight: bold;">{fecha_esp}</td></tr>
+                <tr><td style="padding: 6px 0; color: #6b7280;">🕐 Hora</td><td style="padding: 6px 0; color: #111827; font-weight: bold;">{hora_esp}</td></tr>
+                <tr><td style="padding: 6px 0; color: #6b7280;">💅 Servicio</td><td style="padding: 6px 0; color: #111827; font-weight: bold;">{appointment.service.name}</td></tr>
+                <tr><td style="padding: 6px 0; color: #6b7280;">👩‍💼 Especialista</td><td style="padding: 6px 0; color: #111827; font-weight: bold;">{appointment.employee.get_full_name()}</td></tr>
+                <tr><td style="padding: 6px 0; color: #6b7280;">💰 Precio</td><td style="padding: 6px 0; color: #111827; font-weight: bold;">{precio_formateado}</td></tr>
             </table>
         </div>
-        
         <div style="background-color: #fefce8; border: 1px solid #fde68a; padding: 12px 16px; border-radius: 4px; margin: 16px 0;">
             <p style="margin: 0; color: #92400e; font-size: 14px;">
                 💡 <strong>Recordatorios:</strong><br>
@@ -147,9 +110,7 @@ Si tienes alguna pregunta, responde a este correo.
                 • Cancelaciones con {cancellation_policy} de anticipación
             </p>
         </div>
-        
         <p style="color: #6b7280; font-size: 14px; margin-top: 24px;">
-            Si tienes alguna pregunta, responde a este correo.<br><br>
             ¡Te esperamos! ✨<br>
             <strong>{business_name}</strong>
         </p>
@@ -157,15 +118,14 @@ Si tienes alguna pregunta, responde a este correo.
 </div>
 """
 
-        send_mail(
-            subject=subject,
-            message=message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[client_email],
-            html_message=html_message,
-            fail_silently=False,
-        )
+        params = {
+            "from": f"{business_name} <onboarding@resend.dev>",
+            "to": [client_email],
+            "subject": subject,
+            "html": html_message,
+        }
 
+        resend.Emails.send(params)
         logger.info(f"✅ Email de confirmación enviado a {client_email}")
 
     except Exception as e:
