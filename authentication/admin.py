@@ -6,8 +6,8 @@ from .models import User, Business
 
 @admin.register(Business)
 class BusinessAdmin(admin.ModelAdmin):
-    list_display = ('name', 'owner', 'created_at')
-    search_fields = ('name',)
+    list_display = ('name', 'slug', 'logo_url', 'owner', 'created_at')
+    search_fields = ('name', 'slug')
 
 
 class CustomUserAdmin(UserAdmin):
