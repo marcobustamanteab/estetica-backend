@@ -90,3 +90,33 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.email
+
+class WorkSchedule(models.Model):
+    DAYS_OF_WEEK = [
+        (0, 'Lunes'),
+        (1, 'Martes'),
+        (2, 'Miércoles'),
+        (3, 'Jueves'),
+        (4, 'Viernes'),
+        (5, 'Sábado'),
+        (6, 'Domingo'),
+    ]
+
+    employee = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='work_schedules',
+        verbose_name="Empleado"
+    )
+    day_of_week = models.IntegerField(choices=DAYS_OF_WEEK, verbose_name="Día de la semana")
+    start_time = models.TimeField(verbose_name="Hora de entrada")
+    end_time = models.TimeField(verbose_name="Hora de salida")
+    is_active = models.BooleanField(default=True, verbose_name="Activo")
+
+    class Meta:
+        verbose_name = "Horario de trabajo"
+        verbose_name_plural = "Horarios de trabajo"
+        unique_together = [['employee', 'day_of_week']]
+
+    def __str__(self):
+        return f"{self.employee.get_full_name()} - {self.get_day_of_week_display()}"

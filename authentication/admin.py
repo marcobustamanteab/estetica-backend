@@ -2,12 +2,18 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from .models import User, Business
+from .models import WorkSchedule
 
 
 @admin.register(Business)
 class BusinessAdmin(admin.ModelAdmin):
     list_display = ('name', 'slug', 'logo_url', 'owner', 'created_at')
     search_fields = ('name', 'slug')
+
+@admin.register(WorkSchedule)
+class WorkScheduleAdmin(admin.ModelAdmin):
+    list_display = ('employee', 'day_of_week', 'start_time', 'end_time', 'is_active')
+    list_filter = ('day_of_week', 'is_active')
 
 
 class CustomUserAdmin(UserAdmin):
