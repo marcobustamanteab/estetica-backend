@@ -98,8 +98,8 @@ def send_confirmation_email(appointment):
             <table style="width: 100%; border-collapse: collapse;">
                 <tr><td style="padding: 6px 0; color: #6b7280; width: 140px;">📅 Fecha</td><td style="padding: 6px 0; color: #111827; font-weight: bold;">{fecha_esp}</td></tr>
                 <tr><td style="padding: 6px 0; color: #6b7280;">🕐 Hora</td><td style="padding: 6px 0; color: #111827; font-weight: bold;">{hora_esp}</td></tr>
-                <tr><td style="padding: 6px 0; color: #6b7280;">💅 Servicio</td><td style="padding: 6px 0; color: #111827; font-weight: bold;">{appointment.service.name}</td></tr>
-                <tr><td style="padding: 6px 0; color: #6b7280;">👩‍💼 Especialista</td><td style="padding: 6px 0; color: #111827; font-weight: bold;">{appointment.employee.get_full_name()}</td></tr>
+                <tr><td style="padding: 6px 0; color: #6b7280;">✂️ Servicio</td><td style="padding: 6px 0; color: #111827; font-weight: bold;">{appointment.service.name}</td></tr>
+                <tr><td style="padding: 6px 0; color: #6b7280;">👩‍💼 Barbero/a</td><td style="padding: 6px 0; color: #111827; font-weight: bold;">{appointment.employee.get_full_name()}</td></tr>
                 <tr><td style="padding: 6px 0; color: #6b7280;">💰 Precio</td><td style="padding: 6px 0; color: #111827; font-weight: bold;">{precio_formateado}</td></tr>
             </table>
         </div>
