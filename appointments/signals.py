@@ -107,7 +107,7 @@ def send_confirmation_email(appointment):
             <p style="margin: 0; color: #92400e; font-size: 14px;">
                 💡 <strong>Recordatorios:</strong><br>
                 • Llega 10 minutos antes de tu cita<br>
-                • Cancelaciones con {cancellation_policy} de anticipación
+                • Cancelaciones con {cancellation_policy}
             </p>
         </div>
         <p style="color: #6b7280; font-size: 14px; margin-top: 24px;">
