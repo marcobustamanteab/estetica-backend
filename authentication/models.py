@@ -80,6 +80,13 @@ class User(AbstractUser):
         related_name='authentication_user_set',
         related_query_name='user',
     )
+    
+    commission_rate = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=50.00,
+        verbose_name="Porcentaje de comisión (%)"
+    )
 
     USERNAME_FIELD = 'username'
     REQUIRED_FIELDS = ['email']
