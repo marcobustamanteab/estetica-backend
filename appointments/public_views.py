@@ -28,6 +28,7 @@ def public_business_info(request, slug):
         'id': business.id,
         'name': business.name,
         'slug': business.slug,
+        'logo_url': business.logo_url,
         'services': list(services),
         'employees': list(employees),
     })

@@ -22,6 +22,7 @@ class Business(models.Model):
         null=True,
         blank=True
     )
+    logo_url = models.URLField(max_length=500, blank=True, null=True, verbose_name="URL del logo")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
