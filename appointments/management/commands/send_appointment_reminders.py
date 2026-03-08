@@ -71,7 +71,7 @@ class Command(BaseCommand):
             <table style="width: 100%; border-collapse: collapse;">
                 <tr><td style="padding: 6px 0; color: #6b7280; width: 140px;">📅 Fecha</td><td style="font-weight: bold;">{fecha_esp}</td></tr>
                 <tr><td style="padding: 6px 0; color: #6b7280;">🕐 Hora</td><td style="font-weight: bold;">{hora_esp}</td></tr>
-                <tr><td style="padding: 6px 0; color: #6b7280;">💅 Servicio</td><td style="font-weight: bold;">{appointment.service.name}</td></tr>
+                <tr><td style="padding: 6px 0; color: #6b7280;">✂️ Servicio</td><td style="font-weight: bold;">{appointment.service.name}</td></tr>
                 <tr><td style="padding: 6px 0; color: #6b7280;">👩‍💼 Especialista</td><td style="font-weight: bold;">{appointment.employee.get_full_name()}</td></tr>
                 <tr><td style="padding: 6px 0; color: #6b7280;">💰 Precio</td><td style="font-weight: bold;">{precio_fmt}</td></tr>
             </table>
