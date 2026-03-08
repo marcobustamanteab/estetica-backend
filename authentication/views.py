@@ -6,7 +6,10 @@ from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.exceptions import ValidationError
 
 from django.contrib.auth import get_user_model
-from .serializers import UserSerializer, RegisterSerializer, CustomTokenObtainPairSerializer, AdminUserSerializer
+from .serializers import UserSerializer, RegisterSerializer, CustomTokenObtainPairSerializer, AdminUserSerializer, WorkScheduleSerializer
+from rest_framework.generics import ListAPIView
+from .models import WorkSchedule
+
 
 User = get_user_model()
 
@@ -109,3 +112,13 @@ class UserRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
             serializer.save(**extra)
         else:
             serializer.save()
+
+class WorkScheduleView(ListAPIView):
+    serializer_class = WorkScheduleSerializer
+    
+    def get_queryset(self):
+        qs = WorkSchedule.objects.all()
+        employee_id = self.request.query_params.get('employee')
+        if employee_id:
+            qs = qs.filter(employee_id=employee_id)
+        return qs

@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer # type: ignore
 from django.contrib.auth.models import Group
+from .models import WorkSchedule
 
 User = get_user_model()
 
@@ -108,3 +109,8 @@ class AdminUserSerializer(serializers.ModelSerializer):
             
         instance.save()
         return instance
+    
+class WorkScheduleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WorkSchedule
+        fields = ['id', 'employee', 'day_of_week', 'start_time', 'end_time', 'is_active']
