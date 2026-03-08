@@ -37,6 +37,64 @@ def public_business_info(request, slug):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def public_available_times(request, slug):
+    business = get_object_or_404(Business, slug=slug)
+    
+    date_str = request.query_params.get('date')
+    employee_id = request.query_params.get('employee_id')
+    
+    if not date_str:
+        return Response({'error': 'Se requiere date'}, status=400)
+    
+    try:
+        date = datetime.strptime(date_str, '%Y-%m-%d').date()
+    except ValueError:
+        return Response({'error': 'Formato de fecha inválido'}, status=400)
+    
+    # Bloquear domingos (weekday: lunes=0 ... domingo=6)
+    if date.weekday() == 6:
+        return Response({'available_times': [], 'closed': True, 'reason': 'Cerrado los domingos'})
+    
+    # Obtener horario del empleado para ese día
+    work_start = '09:00'
+    work_end = '18:00'
+    
+    if employee_id:
+        from authentication.models import WorkSchedule
+        try:
+            schedule = WorkSchedule.objects.get(
+                employee_id=employee_id,
+                day_of_week=date.weekday(),
+                is_active=True
+            )
+            work_start = schedule.start_time.strftime('%H:%M')
+            work_end = schedule.end_time.strftime('%H:%M')
+        except WorkSchedule.DoesNotExist:
+            # Si no tiene horario configurado para ese día, no trabaja
+            return Response({'available_times': [], 'closed': True, 'reason': 'El especialista no trabaja este día'})
+    
+    # Generar horarios cada 30 min según el horario del empleado
+    all_times = []
+    start = datetime.strptime(work_start, '%H:%M')
+    end = datetime.strptime(work_end, '%H:%M')
+    while start < end:
+        all_times.append(start.strftime('%H:%M'))
+        start += timedelta(minutes=30)
+    
+    # Filtrar horarios ocupados
+    busy_qs = Appointment.objects.filter(
+        business=business,
+        date=date,
+        status__in=['pending', 'confirmed']
+    )
+    if employee_id:
+        busy_qs = busy_qs.filter(employee_id=employee_id)
+    
+    busy_times = set(busy_qs.values_list('start_time', flat=True))
+    busy_times_str = {t.strftime('%H:%M') if hasattr(t, 'strftime') else str(t)[:5] for t in busy_times}
+    
+    available = [t for t in all_times if t not in busy_times_str]
+    
+    return Response({'available_times': available})
     """Retorna horarios disponibles para una fecha, servicio y empleado"""
     business = get_object_or_404(Business, slug=slug)
     
