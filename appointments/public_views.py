@@ -30,9 +30,9 @@ def public_business_info(request, slug):
         'name': business.name,
         'slug': business.slug,
         'logo_url': business.logo_url,
+        'working_days': business.working_days or [0,1,2,3,4,5,6],
         'services': list(services),
         'employees': list(employees),
-        'working_days': business.working_days,
     })
 
 
