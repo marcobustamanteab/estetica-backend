@@ -3,6 +3,39 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from .models import User, Business
 from .models import WorkSchedule
+from django import forms
+from django.contrib import admin
+from .models import Business, User, WorkSchedule
+
+DAYS_CHOICES = [
+    (0, 'Lunes'),
+    (1, 'Martes'),
+    (2, 'Miércoles'),
+    (3, 'Jueves'),
+    (4, 'Viernes'),
+    (5, 'Sábado'),
+    (6, 'Domingo'),
+]
+
+class BusinessAdminForm(forms.ModelForm):
+    working_days = forms.MultipleChoiceField(
+        choices=DAYS_CHOICES,
+        widget=forms.CheckboxSelectMultiple,
+        label="Días hábiles",
+        required=False,
+    )
+
+    class Meta:
+        model = Business
+        fields = '__all__'
+
+    def clean_working_days(self):
+        return [int(x) for x in self.cleaned_data['working_days']]
+
+
+@admin.register(Business)
+class BusinessAdmin(admin.ModelAdmin):
+    form = BusinessAdminForm
 
 
 @admin.register(Business)
