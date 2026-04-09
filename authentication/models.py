@@ -23,6 +23,11 @@ class Business(models.Model):
         blank=True
     )
     logo_url = models.URLField(max_length=500, blank=True, null=True, verbose_name="URL del logo")
+
+    working_days = models.JSONField(
+    default=lambda: [0, 1, 2, 3, 4, 5, 6],
+    verbose_name="Días hábiles"
+)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

@@ -32,6 +32,7 @@ def public_business_info(request, slug):
         'logo_url': business.logo_url,
         'services': list(services),
         'employees': list(employees),
+        'working_days': business.working_days,
     })
 
 
@@ -53,9 +54,9 @@ def public_available_times(request, slug):
     except ValueError:
         return Response({'error': 'Formato de fecha inválido'}, status=400)
     
-    # Bloquear domingos (weekday: lunes=0 ... domingo=6)
-    if date.weekday() == 6:
-        return Response({'available_times': [], 'closed': True, 'reason': 'Cerrado los domingos'})
+    # Bloquear días no hábiles del negocio
+    if date.weekday() not in business.working_days:
+        return Response({'available_times': [], 'closed': True, 'reason': 'El negocio no atiende este día'})
     
     # Obtener duración del servicio seleccionado (fallback 30 min)
     slot_duration = 30
