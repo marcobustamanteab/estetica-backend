@@ -1,11 +1,8 @@
 # authentication/admin.py
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import User, Business
-from .models import WorkSchedule
 from django import forms
-from django.contrib import admin
-from .models import Business, User, WorkSchedule
+from .models import User, Business, WorkSchedule
 
 DAYS_CHOICES = [
     (0, 'Lunes'),
@@ -36,12 +33,9 @@ class BusinessAdminForm(forms.ModelForm):
 @admin.register(Business)
 class BusinessAdmin(admin.ModelAdmin):
     form = BusinessAdminForm
-
-
-@admin.register(Business)
-class BusinessAdmin(admin.ModelAdmin):
     list_display = ('name', 'slug', 'logo_url', 'owner', 'created_at')
     search_fields = ('name', 'slug')
+
 
 @admin.register(WorkSchedule)
 class WorkScheduleAdmin(admin.ModelAdmin):
