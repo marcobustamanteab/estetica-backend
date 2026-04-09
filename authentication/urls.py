@@ -10,6 +10,7 @@ from .views import (
 from .views_roles import GroupListCreateView, GroupRetrieveUpdateDestroyView, PermissionListView, GroupPermissionsUpdateView
 from .views_business import BusinessListView
 from .views import WorkScheduleView
+from .views import WorkScheduleView, public_employee_schedules
 
 urlpatterns = [
     # Endpoints de autenticación JWT
@@ -33,6 +34,9 @@ urlpatterns = [
     path('groups/<int:pk>/', GroupRetrieveUpdateDestroyView.as_view(), name='group-detail'),
     path('permissions/', PermissionListView.as_view(), name='permission-list'),
     path('groups/<int:pk>/permissions/', GroupPermissionsUpdateView.as_view(), name='group-permissions-update'),
+    
+    # Endpoint público para obtener horarios de un empleado
+    path('employees/<int:employee_id>/schedules/', public_employee_schedules, name='public-employee-schedules'),
 ]
 
 urlpatterns += [
