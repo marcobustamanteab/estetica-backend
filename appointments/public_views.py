@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.shortcuts import get_object_or_404
 from datetime import datetime, timedelta
+import pytz
 from authentication.models import Business
 from .models import Appointment
 import threading
@@ -118,7 +119,16 @@ def public_available_times(request, slug):
         overlaps = any(slot_start < r_end and slot_end > r_start for r_start, r_end in busy_ranges)
         if not overlaps:
             available.append(t)
-    
+        
+    # Filtrar horarios pasados si la fecha es hoy (zona horaria Chile)
+    chile_tz = pytz.timezone('America/Santiago')
+    now_chile = datetime.now(chile_tz)
+    today_chile = now_chile.date()
+
+    if date == today_chile:
+        current_minutes = now_chile.hour * 60 + now_chile.minute
+        available = [t for t in available if (int(t.split(':')[0]) * 60 + int(t.split(':')[1])) > current_minutes]
+
     return Response({'available_times': available})
 
 
