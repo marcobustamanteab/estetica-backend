@@ -95,8 +95,18 @@ class WorkScheduleView(ListAPIView):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def public_employee_schedules(request, employee_id):
-    active_days = list(
-        WorkSchedule.objects.filter(employee_id=employee_id, is_active=True)
-        .values_list('day_of_week', flat=True)
-    )
-    return Response({'working_days': active_days})
+    schedules = WorkSchedule.objects.filter(employee_id=employee_id, is_active=True)
+    active_days = list(schedules.values_list('day_of_week', flat=True))
+    
+    # Obtener rango horario (min start, max end entre todos los días activos)
+    hours = schedules.values('start_time', 'end_time')
+    time_range = None
+    if hours:
+        starts = [h['start_time'].strftime('%H:%M') for h in hours]
+        ends = [h['end_time'].strftime('%H:%M') for h in hours]
+        time_range = {'from': min(starts), 'to': max(ends)}
+
+    return Response({
+        'working_days': active_days,
+        'time_range': time_range
+    })
