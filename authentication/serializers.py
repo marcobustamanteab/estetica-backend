@@ -72,7 +72,7 @@ class AdminUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('id', 'username', 'email', 'first_name', 'last_name', 
-                  'is_active', 'is_staff', 'profile_image', 'password', 'groups', 'business')
+                  'is_active', 'is_staff', 'profile_image', 'password', 'groups', 'business', 'commission_rate')
         read_only_fields = ('id',)
     
     def create(self, validated_data):
