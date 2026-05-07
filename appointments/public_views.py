@@ -17,7 +17,7 @@ def public_business_info(request, slug):
     """Retorna info del negocio, sus servicios y empleados"""
     business = get_object_or_404(Business, slug=slug)
     
-    services = business.services.filter(is_active=True).values(
+    services = business.services.filter(is_active=True, is_internal=False).values(
         'id', 'name', 'duration', 'price', 'description'
     )
     

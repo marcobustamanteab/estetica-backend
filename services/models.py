@@ -52,6 +52,7 @@ class Service(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Precio")
     duration = models.PositiveIntegerField(verbose_name="Duración (minutos)")
     is_active = models.BooleanField(default=True, verbose_name="Activo")
+    is_internal = models.BooleanField(default=False, verbose_name="Solo uso interno")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de creación")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Fecha de actualización")
 
