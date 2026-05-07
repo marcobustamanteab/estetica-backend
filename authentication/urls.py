@@ -12,7 +12,7 @@ from .views import (
     public_employee_schedules,
 )
 from .views_roles import GroupListCreateView, GroupRetrieveUpdateDestroyView, PermissionListView, GroupPermissionsUpdateView
-from .views_business import BusinessListView
+from .views_business import BusinessListView, BusinessDetailView
 
 router = DefaultRouter()
 router.register(r'schedules', WorkScheduleViewSet, basename='schedule')
@@ -29,6 +29,8 @@ urlpatterns = [
     path('users/<int:pk>/', UserRetrieveUpdateDestroyView.as_view(), name='user-detail'),
 
     path('businesses/', BusinessListView.as_view(), name='businesses'),
+    path('businesses/me/', BusinessDetailView.as_view(), name='business-me'),
+    path('businesses/<int:pk>/', BusinessDetailView.as_view(), name='business-detail'),
 
     # Horarios — GET legacy (usado por AppointmentFormModal)
     path('work-schedules/', WorkScheduleView.as_view(), name='work-schedules'),
