@@ -71,9 +71,9 @@ class AdminUserSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'first_name', 'last_name', 
-                  'is_active', 'is_staff', 'profile_image', 'password', 'groups', 'business', 'commission_rate')
-        read_only_fields = ('id',)
+        fields = ('id', 'username', 'email', 'first_name', 'last_name',
+                  'is_active', 'is_staff', 'profile_image', 'password', 'groups', 'business', 'commission_rate', 'google_calendar_id')
+        read_only_fields = ('id', 'google_calendar_id')
     
     def create(self, validated_data):
         password = validated_data.pop('password', None)
