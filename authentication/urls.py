@@ -1,44 +1,47 @@
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
 from .views import (
-    CustomTokenObtainPairView, 
-    RegisterView, 
+    CustomTokenObtainPairView,
+    RegisterView,
     UserProfileView,
     UserListCreateView,
-    UserRetrieveUpdateDestroyView
+    UserRetrieveUpdateDestroyView,
+    WorkScheduleView,
+    WorkScheduleViewSet,
+    public_employee_schedules,
 )
 from .views_roles import GroupListCreateView, GroupRetrieveUpdateDestroyView, PermissionListView, GroupPermissionsUpdateView
 from .views_business import BusinessListView
-from .views import WorkScheduleView
-from .views import WorkScheduleView, public_employee_schedules
+
+router = DefaultRouter()
+router.register(r'schedules', WorkScheduleViewSet, basename='schedule')
 
 urlpatterns = [
-    # Endpoints de autenticación JWT
+    # Autenticación JWT
     path('token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    
-    # Endpoints de usuario
+
+    # Usuario
     path('register/', RegisterView.as_view(), name='register'),
     path('profile/', UserProfileView.as_view(), name='user_profile'),
-    
-    # Endpoints para gestión de usuarios
     path('users/', UserListCreateView.as_view(), name='user-list-create'),
     path('users/<int:pk>/', UserRetrieveUpdateDestroyView.as_view(), name='user-detail'),
-    
+
     path('businesses/', BusinessListView.as_view(), name='businesses'),
-    
+
+    # Horarios — GET legacy (usado por AppointmentFormModal)
     path('work-schedules/', WorkScheduleView.as_view(), name='work-schedules'),
-    
-    # Endpoints para gestión de grupos y permisos
+
+    # Horarios — CRUD completo
+    path('', include(router.urls)),
+
+    # Grupos y permisos
     path('groups/', GroupListCreateView.as_view(), name='group-list-create'),
     path('groups/<int:pk>/', GroupRetrieveUpdateDestroyView.as_view(), name='group-detail'),
     path('permissions/', PermissionListView.as_view(), name='permission-list'),
     path('groups/<int:pk>/permissions/', GroupPermissionsUpdateView.as_view(), name='group-permissions-update'),
-    
-    # Endpoint público para obtener horarios de un empleado
-    path('employees/<int:employee_id>/schedules/', public_employee_schedules, name='public-employee-schedules'),
-]
 
-urlpatterns += [
-    
+    # Endpoint público horarios empleado
+    path('employees/<int:employee_id>/schedules/', public_employee_schedules, name='public-employee-schedules'),
 ]

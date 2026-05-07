@@ -1,5 +1,5 @@
 # authentication/views.py
-from rest_framework import generics, permissions, status
+from rest_framework import generics, permissions, status, viewsets
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.permissions import IsAdminUser, IsAuthenticated, AllowAny
@@ -90,6 +90,45 @@ class WorkScheduleView(ListAPIView):
         if employee_id:
             qs = qs.filter(employee_id=employee_id)
         return qs
+
+
+class WorkScheduleViewSet(viewsets.ModelViewSet):
+    serializer_class = WorkScheduleSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        employee_id = self.request.query_params.get('employee')
+
+        if user.is_superuser:
+            qs = WorkSchedule.objects.all()
+        elif user.is_staff:
+            if not user.business:
+                return WorkSchedule.objects.none()
+            qs = WorkSchedule.objects.filter(employee__business=user.business)
+        else:
+            qs = WorkSchedule.objects.filter(employee=user)
+
+        if employee_id:
+            qs = qs.filter(employee_id=employee_id)
+
+        return qs.order_by('employee', 'day_of_week')
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        employee = serializer.validated_data.get('employee')
+        if not user.is_superuser and user.is_staff:
+            if not user.business or employee.business != user.business:
+                raise ValidationError("No tienes permiso para asignar horarios a este empleado.")
+        serializer.save()
+
+    def perform_update(self, serializer):
+        user = self.request.user
+        employee = serializer.instance.employee
+        if not user.is_superuser and user.is_staff:
+            if not user.business or employee.business != user.business:
+                raise ValidationError("No tienes permiso para modificar horarios de este empleado.")
+        serializer.save()
 
 
 @api_view(['GET'])
