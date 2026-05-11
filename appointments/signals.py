@@ -23,11 +23,10 @@ logger = logging.getLogger(__name__)
 def handle_appointment_created_updated(sender, instance, created, **kwargs):
     if created:
         logger.info(f"🔔 Signal: Nueva cita creada - ID: {instance.id}")
-        # Ejecutar en background para no bloquear el request
         thread = threading.Thread(
             target=run_background_tasks,
             args=(instance,),
-            daemon=True
+            daemon=False  # non-daemon: garantiza que el thread termina aunque el request cierre
         )
         thread.start()
     else:
@@ -35,9 +34,24 @@ def handle_appointment_created_updated(sender, instance, created, **kwargs):
         update_google_calendar_event(instance)
 
 def run_background_tasks(appointment):
-    """Ejecutar tareas lentas en background"""
-    create_google_calendar_event(appointment)
-    send_confirmation_email(appointment)
+    """
+    Ejecutar tareas lentas en background.
+    Cada tarea tiene su propio try/except para que un fallo en una
+    no impida la ejecución de las siguientes.
+    """
+    logger.info(f"▶️ Background tasks iniciadas para cita ID: {appointment.id}")
+
+    try:
+        create_google_calendar_event(appointment)
+    except Exception as e:
+        logger.error(f"❌ [Google Calendar] Cita {appointment.id}: {e}")
+
+    try:
+        send_confirmation_email(appointment)
+    except Exception as e:
+        logger.error(f"❌ [Email] Cita {appointment.id}: {e}")
+
+    logger.info(f"✅ Background tasks completadas para cita ID: {appointment.id}")
 
 def format_chilean_price(price):
     """Formatear precio al estilo chileno"""
