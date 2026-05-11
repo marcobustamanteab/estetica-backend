@@ -1,7 +1,7 @@
 # appointments/views.py
 from rest_framework import viewsets, permissions, status, filters
 from rest_framework.decorators import action, api_view, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from datetime import datetime, timedelta
@@ -29,6 +29,61 @@ def send_reminders(request):
     thread.start()
     
     return Response({'status': 'ok'})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def test_email(request):
+    """
+    Endpoint de diagnóstico — envía un email de prueba y retorna el resultado exacto.
+    Solo accesible para usuarios autenticados.
+    Body: { "to": "destino@email.com" }
+    """
+    to_email = request.data.get('to') or request.user.email
+    if not to_email:
+        return Response({'error': 'Proporciona un email en el campo "to"'}, status=400)
+
+    api_key = os.environ.get('RESEND_API_KEY')
+    if not api_key:
+        return Response({
+            'ok': False,
+            'error': 'RESEND_API_KEY no está configurada en las variables de entorno.',
+            'hint': 'Agrégala en Railway → Variables.'
+        }, status=500)
+
+    try:
+        import resend
+        resend.api_key = api_key
+        business_name = os.environ.get('BUSINESS_NAME', 'BeautyCare')
+
+        params = {
+            "from": f"{business_name} <no-reply@devsign.cl>",
+            "to": [to_email],
+            "subject": f"✅ Email de prueba — {business_name}",
+            "html": f"""
+<div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:24px;">
+  <h2 style="color:#0d9488;">✅ El email funciona correctamente</h2>
+  <p>Este es un email de prueba enviado desde <strong>{business_name}</strong>.</p>
+  <p style="color:#6b7280;font-size:13px;">Si recibiste este mensaje, la integración con Resend está funcionando.</p>
+</div>
+""",
+        }
+
+        result = resend.Emails.send(params)
+        return Response({
+            'ok': True,
+            'message': f'Email enviado a {to_email}',
+            'resend_id': result.get('id') if isinstance(result, dict) else str(result),
+        })
+
+    except Exception as e:
+        import traceback
+        return Response({
+            'ok': False,
+            'error': str(e),
+            'traceback': traceback.format_exc(),
+        }, status=500)
+
 
 class AppointmentViewSet(viewsets.ModelViewSet):
     queryset = Appointment.objects.all()

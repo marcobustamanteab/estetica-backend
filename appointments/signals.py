@@ -76,7 +76,11 @@ def send_confirmation_email(appointment):
             logger.warning(f"⚠️ Cliente {appointment.client.get_full_name()} no tiene email")
             return
 
-        resend.api_key = os.environ.get('RESEND_API_KEY')
+        api_key = os.environ.get('RESEND_API_KEY')
+        if not api_key:
+            logger.error("❌ RESEND_API_KEY no configurada — no se puede enviar email de confirmación")
+            return
+        resend.api_key = api_key
         business_name = appointment.business.name if appointment.business else os.environ.get('BUSINESS_NAME', 'BeautyCare')
         precio_formateado = format_chilean_price(appointment.service.price)
         fecha_esp = format_date_spanish(appointment.date)
