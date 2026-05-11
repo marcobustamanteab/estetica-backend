@@ -25,9 +25,9 @@ def send_reminders(request):
     def run():
         call_command('send_appointment_reminders')
     
-    thread = threading.Thread(target=run, daemon=True)
+    thread = threading.Thread(target=run, daemon=False)
     thread.start()
-    
+
     return Response({'status': 'ok'})
 
 
