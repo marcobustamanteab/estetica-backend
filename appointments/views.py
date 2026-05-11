@@ -85,6 +85,44 @@ def test_email(request):
         }, status=500)
 
 
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def test_zapier(request):
+    """
+    Endpoint de diagnóstico — envía un payload de prueba al webhook de Zapier
+    y retorna el resultado exacto.
+    """
+    webhook_url = os.environ.get('ZAPIER_NEW_APPOINTMENT_WEBHOOK')
+    if not webhook_url:
+        return Response({
+            'ok': False,
+            'error': 'ZAPIER_NEW_APPOINTMENT_WEBHOOK no está configurada en las variables de entorno.',
+            'hint': 'Agrégala en Railway → Variables.'
+        }, status=500)
+
+    import requests as req
+    payload = {
+        'event': 'test',
+        'message': 'Este es un webhook de prueba desde BeautyCare',
+        'client': {'name': 'Cliente Test', 'phone': '56912345678', 'email': request.user.email},
+        'appointment': {'date': '2026-01-01', 'start_time': '10:00', 'service_name': 'Servicio de prueba'},
+        'whatsapp_message_client': '✅ Mensaje de prueba para el cliente',
+        'whatsapp_message_admin': '🔔 Mensaje de prueba para el admin',
+    }
+
+    try:
+        response = req.post(webhook_url, json=payload, timeout=10,
+                            headers={'Content-Type': 'application/json'})
+        return Response({
+            'ok': response.status_code == 200,
+            'status_code': response.status_code,
+            'response_text': response.text[:500],
+            'webhook_url': webhook_url[:40] + '...',
+        })
+    except Exception as e:
+        return Response({'ok': False, 'error': str(e)}, status=500)
+
+
 class AppointmentViewSet(viewsets.ModelViewSet):
     queryset = Appointment.objects.all()
     serializer_class = AppointmentSerializer

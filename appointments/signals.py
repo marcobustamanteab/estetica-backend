@@ -47,6 +47,11 @@ def run_background_tasks(appointment):
         logger.error(f"❌ [Google Calendar] Cita {appointment.id}: {e}")
 
     try:
+        send_zapier_webhook_new_appointment(appointment)
+    except Exception as e:
+        logger.error(f"❌ [Zapier] Cita {appointment.id}: {e}")
+
+    try:
         send_confirmation_email(appointment)
     except Exception as e:
         logger.error(f"❌ [Email] Cita {appointment.id}: {e}")
@@ -186,8 +191,6 @@ def create_google_calendar_event(appointment):
         else:
             logger.error(f"❌ No se pudo crear evento en Google Calendar")
         
-        send_zapier_webhook_new_appointment(appointment)
-            
     except Exception as e:
         logger.error(f"❌ Error creando evento en Google Calendar: {e}")
         import traceback
