@@ -13,6 +13,12 @@ class Appointment(models.Model):
         ('completed', 'Completada'),
     )
 
+    PAYMENT_METHOD_CHOICES = (
+        ('efectivo', 'Efectivo'),
+        ('transferencia', 'Transferencia'),
+        ('pos', 'POS'),
+    )
+
     # Cada cita pertenece a un negocio
     # null=True para no romper los registros existentes
     business = models.ForeignKey(
@@ -52,6 +58,13 @@ class Appointment(models.Model):
         verbose_name="Estado"
     )
     notes = models.TextField(blank=True, null=True, verbose_name="Notas")
+    payment_method = models.CharField(
+        max_length=20,
+        choices=PAYMENT_METHOD_CHOICES,
+        blank=True,
+        null=True,
+        verbose_name="Medio de pago"
+    )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de creación")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Fecha de actualización")
 

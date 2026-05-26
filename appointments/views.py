@@ -128,7 +128,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):
     serializer_class = AppointmentSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['client', 'service', 'employee', 'date', 'status']
+    filterset_fields = ['client', 'service', 'employee', 'date', 'status', 'payment_method']
     search_fields = ['notes', 'client__first_name', 'client__last_name', 'employee__username']
     ordering_fields = ['date', 'start_time', 'created_at']
 
