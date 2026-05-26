@@ -31,6 +31,9 @@ def public_business_info(request, slug):
         'slug': business.slug,
         'logo_url': business.logo_url,
         'working_days': business.working_days or [0,1,2,3,4,5,6],
+        'primary_color': business.primary_color or '#0d9488',
+        'employee_label': business.employee_label or 'Especialista',
+        'booking_tagline': business.booking_tagline or 'Elige tu servicio y agenda en minutos',
         'services': list(services),
         'employees': list(employees),
     })

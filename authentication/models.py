@@ -26,6 +26,21 @@ class Business(models.Model):
         blank=True
     )
     logo_url = models.URLField(max_length=500, blank=True, null=True, verbose_name="URL del logo")
+    primary_color = models.CharField(
+        max_length=7,
+        default='#0d9488',
+        verbose_name="Color primario (hex)"
+    )
+    employee_label = models.CharField(
+        max_length=60,
+        default='Especialista',
+        verbose_name="Etiqueta de empleados"
+    )
+    booking_tagline = models.CharField(
+        max_length=120,
+        default='Elige tu servicio y agenda en minutos',
+        verbose_name="Tagline de reservas"
+    )
 
     working_days = models.JSONField(
         default=default_working_days,

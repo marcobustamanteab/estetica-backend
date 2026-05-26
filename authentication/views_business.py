@@ -9,7 +9,7 @@ from .models import Business
 class BusinessSerializer(serializers.ModelSerializer):
     class Meta:
         model = Business
-        fields = ['id', 'name', 'slug', 'logo_url', 'working_days']
+        fields = ['id', 'name', 'slug', 'logo_url', 'working_days', 'primary_color', 'employee_label', 'booking_tagline']
         read_only_fields = ['id']
 
     def update(self, instance, validated_data):
@@ -23,6 +23,9 @@ class BusinessSerializer(serializers.ModelSerializer):
         instance.name = name
         instance.logo_url = validated_data.get('logo_url', instance.logo_url)
         instance.working_days = validated_data.get('working_days', instance.working_days)
+        instance.primary_color = validated_data.get('primary_color', instance.primary_color)
+        instance.employee_label = validated_data.get('employee_label', instance.employee_label)
+        instance.booking_tagline = validated_data.get('booking_tagline', instance.booking_tagline)
         instance.save()
         return instance
 
