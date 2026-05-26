@@ -15,16 +15,47 @@ import threading
 @permission_classes([AllowAny])
 def public_business_info(request, slug):
     """Retorna info del negocio, sus servicios y empleados"""
+    from services.models import RoleCategoryPermission
+
     business = get_object_or_404(Business, slug=slug)
-    
-    services = business.services.filter(is_active=True, is_internal=False).values(
-        'id', 'name', 'duration', 'price', 'description'
+
+    # Roles que tienen al menos un RoleCategoryPermission en este negocio
+    # (roles "reales" de especialistas — se excluyen roles internos como "promo")
+    bookable_role_ids = set(
+        RoleCategoryPermission.objects.filter(category__business=business)
+        .values_list('role_id', flat=True)
     )
-    
-    employees = business.users.filter(
-        is_active=True, is_staff=False
-    ).values('id', 'first_name', 'last_name')
-    
+
+    # Servicios con los role_ids que pueden realizarlos
+    services_data = []
+    for svc in business.services.filter(is_active=True, is_internal=False):
+        allowed_ids = list(
+            RoleCategoryPermission.objects.filter(category=svc.category)
+            .values_list('role_id', flat=True)
+        )
+        services_data.append({
+            'id': svc.id,
+            'name': svc.name,
+            'duration': svc.duration,
+            'price': float(svc.price),
+            'description': svc.description or '',
+            'allowed_role_ids': allowed_ids,
+        })
+
+    # Empleados con su especialidad (solo roles bookables, ignora roles internos)
+    employees_data = []
+    for emp in business.users.filter(is_active=True, is_staff=False):
+        bookable_groups = emp.groups.filter(id__in=bookable_role_ids)
+        specialty = bookable_groups.first().name if bookable_groups.exists() else None
+        role_ids = list(bookable_groups.values_list('id', flat=True))
+        employees_data.append({
+            'id': emp.id,
+            'first_name': emp.first_name,
+            'last_name': emp.last_name,
+            'specialty': specialty,
+            'role_ids': role_ids,
+        })
+
     return Response({
         'id': business.id,
         'name': business.name,
@@ -34,8 +65,8 @@ def public_business_info(request, slug):
         'primary_color': business.primary_color or '#0d9488',
         'employee_label': business.employee_label or 'Especialista',
         'booking_tagline': business.booking_tagline or 'Elige tu servicio y agenda en minutos',
-        'services': list(services),
-        'employees': list(employees),
+        'services': services_data,
+        'employees': employees_data,
     })
 
 
