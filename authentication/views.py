@@ -80,6 +80,12 @@ class UserRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
         else:
             serializer.save()
 
+    def perform_destroy(self, instance):
+        # Soft-delete: desactiva el usuario en vez de eliminarlo.
+        # Preserva todas las citas, ventas y registros históricos asociados.
+        instance.is_active = False
+        instance.save(update_fields=['is_active'])
+
 
 class WorkScheduleView(ListAPIView):
     serializer_class = WorkScheduleSerializer
