@@ -16,29 +16,30 @@ def store_old_email(_sender, instance, **_kwargs):
         return
     try:
         instance._old_email = User.objects.get(pk=instance.pk).email
-    except User.DoesNotExist:
+    except Exception:
         instance._old_email = None
 
 
 @receiver(post_save, sender=User)
 def handle_user_saved(_sender, instance, created, **_kwargs):
-    if instance.is_superuser:
-        return
-    if not instance.email:
-        return
+    try:
+        if instance.is_superuser:
+            return
+        if not instance.email:
+            return
 
-    if created:
-        # Usuario nuevo: crear y compartir calendario
-        if not instance.google_calendar_id:
-            _run_in_thread(_setup_employee_google_calendar, instance.id)
-    else:
-        # Usuario existente: recompartir si cambió el email
-        old_email = getattr(instance, '_old_email', None)
-        if old_email and old_email != instance.email:
-            _run_in_thread(
-                _reshare_calendar_on_email_change,
-                instance.id, old_email, instance.email
-            )
+        if created:
+            if not instance.google_calendar_id:
+                _run_in_thread(_setup_employee_google_calendar, instance.id)
+        else:
+            old_email = getattr(instance, '_old_email', None)
+            if old_email and old_email != instance.email:
+                _run_in_thread(
+                    _reshare_calendar_on_email_change,
+                    instance.id, old_email, instance.email
+                )
+    except Exception as e:
+        logger.error(f"❌ Error en signal handle_user_saved (user {instance.id}): {e}")
 
 
 def _run_in_thread(fn, *args):
