@@ -70,6 +70,8 @@ class UserRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
         return User.objects.filter(business=user.business)
 
     def perform_update(self, serializer):
+        old_email = serializer.instance.email
+
         if not self.request.user.is_superuser:
             extra = {'is_superuser': False}
             if not serializer.instance.is_staff:
@@ -79,6 +81,14 @@ class UserRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
             serializer.save(**extra)
         else:
             serializer.save()
+
+        new_email = serializer.instance.email
+        if old_email != new_email and not serializer.instance.is_superuser:
+            try:
+                from authentication.signals import _reshare_calendar_on_email_change, _run_in_thread
+                _run_in_thread(_reshare_calendar_on_email_change, serializer.instance.id, old_email, new_email)
+            except Exception:
+                pass
 
     def perform_destroy(self, instance):
         # Soft-delete: desactiva el usuario en vez de eliminarlo.

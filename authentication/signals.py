@@ -1,6 +1,6 @@
 import threading
 import logging
-from django.db.models.signals import pre_save, post_save
+from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.contrib.auth import get_user_model
 
@@ -9,37 +9,21 @@ logger = logging.getLogger(__name__)
 User = get_user_model()
 
 
-@receiver(pre_save, sender=User)
-def store_old_email(_sender, instance, **_kwargs):
-    """Guarda el email anterior para detectar cambios en post_save."""
-    if not instance.pk:
-        return
-    try:
-        instance._old_email = User.objects.get(pk=instance.pk).email
-    except Exception:
-        instance._old_email = None
-
-
 @receiver(post_save, sender=User)
-def handle_user_saved(_sender, instance, created, **_kwargs):
+def handle_user_created(_sender, instance, created, **_kwargs):
+    """Al crear un nuevo empleado, inicializar su calendario Google en background."""
+    if not created:
+        return
     try:
         if instance.is_superuser:
             return
         if not instance.email:
             return
-
-        if created:
-            if not instance.google_calendar_id:
-                _run_in_thread(_setup_employee_google_calendar, instance.id)
-        else:
-            old_email = getattr(instance, '_old_email', None)
-            if old_email and old_email != instance.email:
-                _run_in_thread(
-                    _reshare_calendar_on_email_change,
-                    instance.id, old_email, instance.email
-                )
+        if instance.google_calendar_id:
+            return
+        _run_in_thread(_setup_employee_google_calendar, instance.id)
     except Exception as e:
-        logger.error(f"❌ Error en signal handle_user_saved (user {instance.id}): {e}")
+        logger.error(f"❌ Error en signal handle_user_created (user {instance.id}): {e}")
 
 
 def _run_in_thread(fn, *args):
