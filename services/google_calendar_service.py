@@ -60,7 +60,11 @@ class GoogleCalendarService:
                 'role': 'owner'  # El empleado será dueño de su calendario
             }
             
-            self.service.acl().insert(calendarId=calendar_id, body=rule).execute()
+            self.service.acl().insert(
+                calendarId=calendar_id,
+                body=rule,
+                sendNotifications=True
+            ).execute()
             print(f"✅ Calendario compartido con {employee_email}")
             
         except Exception as e:
@@ -68,6 +72,20 @@ class GoogleCalendarService:
     
 
     
+    def update_calendar_sharing(self, calendar_id, old_email, new_email):
+        """Revocar acceso al email anterior y conceder acceso al nuevo."""
+        # Revocar acceso anterior
+        try:
+            rule_id = f"user:{old_email}"
+            self.service.acl().delete(calendarId=calendar_id, ruleId=rule_id).execute()
+            print(f"✅ Acceso revocado para {old_email}")
+        except Exception as e:
+            print(f"⚠️ No se pudo revocar acceso de {old_email}: {e}")
+
+        # Compartir con el nuevo email
+        if new_email:
+            self.share_calendar_with_employee(calendar_id, new_email)
+
     def create_appointment_event(self, appointment):
         """Crear evento en Google Calendar cuando se agenda una cita"""
         try:
