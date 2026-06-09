@@ -10,7 +10,7 @@ User = get_user_model()
 
 
 @receiver(post_save, sender=User)
-def handle_user_created(_sender, instance, created, **_kwargs):
+def handle_user_created(sender, instance, created, **kwargs):  # noqa: ARG001
     """Al crear un nuevo empleado, inicializar su calendario Google en background."""
     if not created:
         return
