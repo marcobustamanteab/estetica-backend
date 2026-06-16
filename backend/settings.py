@@ -200,6 +200,11 @@ LOGGING = {
             'level': 'INFO',
             'propagate': True,
         },
+        'authentication.signals': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
     },
 }
 
