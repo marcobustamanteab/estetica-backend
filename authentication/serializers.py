@@ -23,17 +23,27 @@ class UserSerializer(serializers.ModelSerializer):
     Serializer para mostrar información del usuario
     """
     groups = serializers.SerializerMethodField()
-    
+    password = serializers.CharField(write_only=True, required=False)
+
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'profile_image', 'is_staff', 'is_superuser', 'is_active', 'groups', 'business', 'commission_rate')
-        read_only_fields = ('id',)
-    
+        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'profile_image', 'is_staff', 'is_superuser', 'is_active', 'groups', 'business', 'commission_rate', 'password')
+        read_only_fields = ('id', 'is_staff', 'is_superuser', 'is_active')
+
     def get_groups(self, obj):
         return [
             {'id': group.id, 'name': group.name}
             for group in obj.groups.all()
         ]
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop('password', None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        if password:
+            instance.set_password(password)
+        instance.save()
+        return instance
 
 class RegisterSerializer(serializers.ModelSerializer):
     """
