@@ -9,6 +9,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
     service_name = serializers.ReadOnlyField(source='service.name')
     employee_name = serializers.ReadOnlyField(source='employee.get_full_name')
     service_duration = serializers.ReadOnlyField(source='service.duration')
+    created_by_name = serializers.ReadOnlyField(source='created_by.get_full_name')
     
     class Meta:
         model = Appointment

@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from django.db import models
 from .models import Appointment
 from .serializers import AppointmentSerializer, CalendarAppointmentSerializer
-from authentication.models import User
+from authentication.models import User, Business
 import os
 
 
@@ -135,15 +135,19 @@ class AppointmentViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
 
+        is_owner = user.business_id and Business.objects.filter(
+            pk=user.business_id, owner=user
+        ).exists()
+
         if user.is_superuser:
             queryset = Appointment.objects.all()
-        elif user.is_staff:
-            if not user.business:
+        elif user.is_staff or is_owner:
+            if not user.business_id:
                 return Appointment.objects.none()
-            queryset = Appointment.objects.filter(business=user.business)
-        elif user.business:
+            queryset = Appointment.objects.filter(business_id=user.business_id)
+        elif user.business_id:
             queryset = Appointment.objects.filter(
-                business=user.business,
+                business_id=user.business_id,
                 employee=user
             )
         else:
@@ -179,7 +183,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         if not business:
             from rest_framework.exceptions import ValidationError
             raise ValidationError("Tu usuario no tiene un negocio asignado.")
-        serializer.save(business=business)
+        serializer.save(business=business, created_by=self.request.user)
 
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
