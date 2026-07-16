@@ -4,7 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import serializers, status
 from django.utils.text import slugify
 from .models import Business
-import cloudinary.uploader
+import json
 
 ALLOWED_IMAGE_TYPES = {'image/jpeg', 'image/png', 'image/webp', 'image/gif'}
 MAX_LOGO_SIZE = 2 * 1024 * 1024  # 2 MB
@@ -84,23 +84,30 @@ class BusinessDetailView(APIView):
                 return Response({'error': 'Solo se permiten imágenes JPG, PNG o WebP.'}, status=400)
             if logo_file.size > MAX_LOGO_SIZE:
                 return Response({'error': 'La imagen no puede superar 2 MB.'}, status=400)
-            result = cloudinary.uploader.upload(
-                logo_file,
-                folder='business_logos',
-                public_id=f'business_{business.id}',
-                overwrite=True,
-            )
-            business.logo_url = result['secure_url']
-            business.save(update_fields=['logo_url'])
-
-        # working_days viene como string JSON cuando se envía por FormData
-        data = request.data.copy()
-        if 'working_days' in data and isinstance(data.get('working_days'), str):
-            import json
             try:
-                data['working_days'] = json.loads(data['working_days'])
+                import cloudinary.uploader
+                result = cloudinary.uploader.upload(
+                    logo_file,
+                    folder='business_logos',
+                    public_id=f'business_{business.id}',
+                    overwrite=True,
+                )
+                business.logo_url = result['secure_url']
+                business.save(update_fields=['logo_url'])
+            except Exception as e:
+                return Response({'error': f'Error al subir imagen: {str(e)}'}, status=500)
+
+        # Construir dict limpio desde FormData (evita problemas con QueryDict)
+        data = {}
+        for field in ('name', 'primary_color', 'employee_label', 'booking_tagline'):
+            if field in request.data:
+                data[field] = request.data.get(field)
+        if 'working_days' in request.data:
+            wd = request.data.get('working_days')
+            try:
+                data['working_days'] = json.loads(wd) if isinstance(wd, str) else wd
             except (ValueError, TypeError):
-                pass
+                data['working_days'] = wd
 
         serializer = BusinessSerializer(business, data=data, partial=True)
         if serializer.is_valid():
