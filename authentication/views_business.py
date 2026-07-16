@@ -4,6 +4,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import serializers, status
 from django.utils.text import slugify
 from .models import Business
+import cloudinary.uploader
+
+ALLOWED_IMAGE_TYPES = {'image/jpeg', 'image/png', 'image/webp', 'image/gif'}
+MAX_LOGO_SIZE = 2 * 1024 * 1024  # 2 MB
 
 
 class BusinessSerializer(serializers.ModelSerializer):
@@ -72,7 +76,33 @@ class BusinessDetailView(APIView):
         business = self._get_business(request, pk)
         if not business:
             return Response({'error': 'Negocio no encontrado'}, status=404)
-        serializer = BusinessSerializer(business, data=request.data, partial=True)
+
+        # Manejo de upload de logo
+        logo_file = request.FILES.get('logo_file')
+        if logo_file:
+            if logo_file.content_type not in ALLOWED_IMAGE_TYPES:
+                return Response({'error': 'Solo se permiten imágenes JPG, PNG o WebP.'}, status=400)
+            if logo_file.size > MAX_LOGO_SIZE:
+                return Response({'error': 'La imagen no puede superar 2 MB.'}, status=400)
+            result = cloudinary.uploader.upload(
+                logo_file,
+                folder='business_logos',
+                public_id=f'business_{business.id}',
+                overwrite=True,
+            )
+            business.logo_url = result['secure_url']
+            business.save(update_fields=['logo_url'])
+
+        # working_days viene como string JSON cuando se envía por FormData
+        data = request.data.copy()
+        if 'working_days' in data and isinstance(data.get('working_days'), str):
+            import json
+            try:
+                data['working_days'] = json.loads(data['working_days'])
+            except (ValueError, TypeError):
+                pass
+
+        serializer = BusinessSerializer(business, data=data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
