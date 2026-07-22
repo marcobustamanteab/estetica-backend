@@ -159,38 +159,65 @@ def send_confirmation_email(appointment):
 
 def create_google_calendar_event(appointment):
     """
-    Crear evento en Google Calendar para nueva cita
+    Crear evento en Google Calendar para nueva cita.
+
+    Cuando se crea un usuario nuevo y de inmediato se le agenda una cita,
+    el signal de autenticación lanza un thread que crea el calendario y guarda
+    el google_calendar_id en DB. Este thread corre en paralelo, por lo que
+    appointment.employee (objeto en memoria) puede tener google_calendar_id=None
+    aunque el otro thread ya lo haya guardado.
+    Re-leemos el empleado desde DB y esperamos hasta 8 s para que el
+    thread de creación de calendario termine antes de crear uno duplicado.
     """
+    import time
+    from django.contrib.auth import get_user_model
+
     try:
         logger.info(f"📅 Intentando crear evento en Google Calendar para cita ID: {appointment.id}")
-        
-        if not appointment.employee.google_calendar_id:
-            logger.info(f"⚠️ Empleado {appointment.employee.username} no tiene calendar_id, creando automáticamente...")
-            
+
+        User = get_user_model()
+        # Leer siempre desde DB para evitar usar el objeto en memoria desactualizado
+        employee = User.objects.get(pk=appointment.employee_id)
+
+        if not employee.google_calendar_id:
+            # El thread de creación de usuario puede estar corriendo en paralelo.
+            # Esperamos hasta 8 s en intervalos de 2 s.
+            logger.info(f"⏳ Esperando calendar_id para {employee.username} (puede estar creándose en paralelo)...")
+            for _ in range(4):
+                time.sleep(2)
+                employee.refresh_from_db(fields=['google_calendar_id'])
+                if employee.google_calendar_id:
+                    logger.info(f"✅ Calendar_id disponible tras espera")
+                    break
+
+        if not employee.google_calendar_id:
+            logger.info(f"⚠️ {employee.username} aún sin calendar_id — creando ahora")
             calendar_service = GoogleCalendarService()
             calendar_id = calendar_service.create_employee_calendar(
-                appointment.employee.get_full_name(),
-                appointment.employee.email
+                employee.get_full_name(),
+                employee.email,
             )
-            
             if calendar_id:
-                appointment.employee.google_calendar_id = calendar_id
-                appointment.employee.save(update_fields=['google_calendar_id'])
-                logger.info(f"✅ Calendario creado automáticamente para {appointment.employee.get_full_name()}")
+                employee.google_calendar_id = calendar_id
+                employee.save(update_fields=['google_calendar_id'])
+                logger.info(f"✅ Calendario creado para {employee.get_full_name()}")
             else:
-                logger.error(f"❌ No se pudo crear calendario automáticamente")
+                logger.error(f"❌ No se pudo crear calendario para {employee.username}")
                 return
-        
+
+        # Sincronizar el objeto en memoria con el valor real de DB
+        appointment.employee.google_calendar_id = employee.google_calendar_id
+
         calendar_service = GoogleCalendarService()
         event_id = calendar_service.create_appointment_event(appointment)
-        
+
         if event_id:
             appointment.google_calendar_event_id = event_id
             appointment.save(update_fields=['google_calendar_event_id'])
             logger.info(f"✅ Evento creado exitosamente en Google Calendar")
         else:
             logger.error(f"❌ No se pudo crear evento en Google Calendar")
-        
+
     except Exception as e:
         logger.error(f"❌ Error creando evento en Google Calendar: {e}")
         import traceback
