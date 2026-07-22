@@ -6,6 +6,7 @@ from .views import (
     RegisterView,
     UserProfileView,
     ProfileImageUploadView,
+    UserProfileImageUploadView,
     UserListCreateView,
     UserRetrieveUpdateDestroyView,
     WorkScheduleView,
@@ -29,6 +30,7 @@ urlpatterns = [
     path('profile/image/', ProfileImageUploadView.as_view(), name='profile-image'),
     path('users/', UserListCreateView.as_view(), name='user-list-create'),
     path('users/<int:pk>/', UserRetrieveUpdateDestroyView.as_view(), name='user-detail'),
+    path('users/<int:pk>/image/', UserProfileImageUploadView.as_view(), name='user-profile-image'),
 
     path('businesses/', BusinessListView.as_view(), name='businesses'),
     path('businesses/me/', BusinessDetailView.as_view(), name='business-me'),

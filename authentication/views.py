@@ -62,6 +62,44 @@ class ProfileImageUploadView(APIView):
             return Response({'error': f'Error al subir imagen: {str(e)}'}, status=500)
 
 
+class UserProfileImageUploadView(APIView):
+    """Admin sube la foto de cualquier usuario de su negocio."""
+    permission_classes = [IsAdminUser]
+    _ALLOWED = {'image/jpeg', 'image/png', 'image/webp', 'image/gif'}
+    _MAX = 2 * 1024 * 1024
+
+    def post(self, request, pk):
+        try:
+            admin = request.user
+            if admin.is_superuser:
+                target = User.objects.get(pk=pk)
+            else:
+                target = User.objects.get(pk=pk, business=admin.business)
+        except User.DoesNotExist:
+            return Response({'error': 'Usuario no encontrado.'}, status=404)
+
+        file = request.FILES.get('profile_image')
+        if not file:
+            return Response({'error': 'No se proporcionó imagen.'}, status=400)
+        if file.content_type not in self._ALLOWED:
+            return Response({'error': 'Solo se permiten imágenes JPG, PNG o WebP.'}, status=400)
+        if file.size > self._MAX:
+            return Response({'error': f'La imagen supera 2 MB ({file.size/1024/1024:.1f} MB).'}, status=400)
+        try:
+            import cloudinary.uploader
+            result = cloudinary.uploader.upload(
+                file,
+                folder='profile_images',
+                public_id=f'user_{target.id}',
+                overwrite=True,
+            )
+            target.profile_image = result['secure_url']
+            target.save(update_fields=['profile_image'])
+            return Response({'profile_image': target.profile_image})
+        except Exception as e:
+            return Response({'error': f'Error al subir imagen: {str(e)}'}, status=500)
+
+
 class UserListCreateView(generics.ListCreateAPIView):
     serializer_class = AdminUserSerializer
     permission_classes = [IsAdminUser]
