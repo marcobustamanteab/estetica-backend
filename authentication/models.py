@@ -71,7 +71,7 @@ class User(AbstractUser):
     """
     email = models.EmailField(_('email address'), unique=True)
     phone_number = models.CharField(max_length=15, blank=True, null=True)
-    profile_image = models.ImageField(upload_to='profile_images/', blank=True, null=True)
+    profile_image = models.URLField(max_length=500, blank=True, null=True, verbose_name="Foto de perfil")
 
     google_calendar_id = models.CharField(
         max_length=200,

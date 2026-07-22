@@ -5,6 +5,7 @@ from .views import (
     CustomTokenObtainPairView,
     RegisterView,
     UserProfileView,
+    ProfileImageUploadView,
     UserListCreateView,
     UserRetrieveUpdateDestroyView,
     WorkScheduleView,
@@ -25,6 +26,7 @@ urlpatterns = [
     # Usuario
     path('register/', RegisterView.as_view(), name='register'),
     path('profile/', UserProfileView.as_view(), name='user_profile'),
+    path('profile/image/', ProfileImageUploadView.as_view(), name='profile-image'),
     path('users/', UserListCreateView.as_view(), name='user-list-create'),
     path('users/<int:pk>/', UserRetrieveUpdateDestroyView.as_view(), name='user-detail'),
 
